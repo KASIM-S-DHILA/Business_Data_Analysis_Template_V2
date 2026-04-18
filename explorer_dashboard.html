@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Explorer Dashboard</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            --bg: #0f1117;
+            --card: #1a1d27;
+            --card2: #242836;
+            --border: #2d3148;
+            --text: #e4e6ef;
+            --text2: #9498b3;
+            --accent: #6366f1;
+            --accent2: #818cf8;
+            --green: #22c55e;
+            --red: #ef4444;
+            --orange: #f59e0b;
+            --cyan: #06b6d4
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh
+        }
+
+        .header {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent
+        }
+
+        .header .stats {
+            display: flex;
+            gap: 24px;
+            font-size: 13px;
+            color: var(--text2)
+        }
+
+        .header .stats span {
+            color: var(--accent2);
+            font-weight: 600
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text2);
+            border-bottom: 2px solid transparent;
+            transition: all .2s
+        }
+
+        .tab:hover {
+            color: var(--text)
+        }
+
+        .tab.active {
+            color: var(--accent2);
+            border-bottom-color: var(--accent)
+        }
+
+        .content {
+            padding: 24px 32px;
+            display: none
+        }
+
+        .content.active {
+            display: block
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px
+        }
+
+        .controls select,
+        .controls input {
+            background: var(--card2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            min-width: 220px
+        }
+
+        .controls select:focus,
+        .controls input:focus {
+            border-color: var(--accent)
+        }
+
+        .controls label {
+            font-size: 12px;
+            color: var(--text2);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px
+        }
+
+        .kpi {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px
+        }
+
+        .kpi .label {
+            font-size: 11px;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 6px
+        }
+
+        .kpi .value {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'Playfair Display', serif
+        }
+
+        .kpi .sub {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 4px
+        }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px
+        }
+
+        .chart-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px
+        }
+
+        .chart-box h3 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text2)
+        }
+
+        .chart-box canvas {
+            width: 100% !important;
+            max-height: 300px
+        }
+
+        .full-width {
+            grid-column: 1/-1
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px
+        }
+
+        th {
+            text-align: left;
+            padding: 8px 10px;
+            background: var(--card2);
+            color: var(--text2);
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+            user-select: none
+        }
+
+        th:hover {
+            color: var(--accent2)
+        }
+
+        td {
+            padding: 7px 10px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        tr:hover td {
+            background: rgba(99, 102, 241, .05)
+        }
+
+        .table-wrap {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--card)
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600
+        }
+
+        .badge-star {
+            background: rgba(99, 102, 241, .15);
+            color: var(--accent2)
+        }
+
+        .badge-healthy {
+            background: rgba(34, 197, 94, .15);
+            color: var(--green)
+        }
+
+        .badge-average {
+            background: rgba(245, 158, 11, .15);
+            color: var(--orange)
+        }
+
+        .badge-weak {
+            background: rgba(239, 68, 68, .15);
+            color: var(--red)
+        }
+
+        .badge-risky {
+            background: rgba(239, 68, 68, .2);
+            color: var(--red)
+        }
+
+        .badge-strong {
+            background: rgba(34, 197, 94, .15);
+            color: var(--green)
+        }
+
+        .badge-stable {
+            background: rgba(6, 182, 212, .15);
+            color: var(--cyan)
+        }
+
+        .badge-moderate {
+            background: rgba(245, 158, 11, .15);
+            color: var(--orange)
+        }
+
+        .num-pos {
+            color: var(--green)
+        }
+
+        .num-neg {
+            color: var(--red)
+        }
+
+        .search-box {
+            position: relative
+        }
+
+        .search-box input {
+            padding-left: 32px
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px
+        }
+
+        .comp-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px
+        }
+
+        .comp-tag {
+            background: var(--card2);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .comp-tag .remove {
+            cursor: pointer;
+            color: var(--red);
+            font-weight: 700
+        }
+
+        .sparkline {
+            display: inline-flex;
+            align-items: end;
+            gap: 1px;
+            height: 20px
+        }
+
+        .sparkline .bar {
+            width: 4px;
+            background: var(--accent);
+            border-radius: 1px;
+            min-height: 1px
+        }
+
+        @media(max-width:768px) {
+            .chart-row {
+                grid-template-columns: 1fr
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 12px
+            }
+
+            .kpi-row {
+                grid-template-columns: repeat(2, 1fr)
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Sales Explorer</h1>
+        <div class="stats">
+            <div>Revenue <span id="hdr-rev"></span></div>
+            <div>Groups <span id="hdr-grp"></span></div>
+            <div>Items <span id="hdr-items"></span></div>
+            <div>Months <span id="hdr-months"></span></div>
+        </div>
+    </div>
+    <div class="tabs">
+        <div class="tab active" data-tab="group">Group Explorer</div>
+        <div class="tab" data-tab="item">Item Explorer</div>
+        <div class="tab" data-tab="compare">Comparison</div>
+    </div>
+
+    <div id="group" class="content active">
+        <div class="controls">
+            <div><label>Group</label><br><select id="grp-sel"></select></div>
+            <div><label>Verdict Filter</label><br><select id="grp-verdict-filter">
+                    <option value="">All</option>
+                    <option>Star</option>
+                    <option>Healthy</option>
+                    <option>Average</option>
+                    <option>Weak</option>
+                    <option>Risky</option>
+                </select></div>
+        </div>
+        <div class="kpi-row" id="grp-kpis"></div>
+        <div class="chart-row">
+            <div class="chart-box">
+                <h3>Monthly Revenue & Margin</h3><canvas id="grp-monthly"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Top 10 Buyers</h3><canvas id="grp-buyers"></canvas>
+            </div>
+        </div>
+        <div class="chart-row">
+            <div class="chart-box">
+                <h3>Top Items by Revenue</h3><canvas id="grp-items-chart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Item Composition (Revenue Share)</h3><canvas id="grp-pie"></canvas>
+            </div>
+        </div>
+        <h3 style="font-size:14px;margin:16px 0 8px;color:var(--text2)">All Items in Group</h3>
+        <div class="table-wrap">
+            <table id="grp-table">
+                <thead>
+                    <tr>
+                        <th data-col="name">Item</th>
+                        <th data-col="revenue">Revenue</th>
+                        <th data-col="margin_pct">Margin%</th>
+                        <th data-col="qty">Qty</th>
+                        <th data-col="avg_rate">Avg Rate</th>
+                        <th data-col="txns">Txns</th>
+                        <th data-col="buyers">Buyers</th>
+                        <th data-col="verdict">Verdict</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="item" class="content">
+        <div class="controls">
+            <div><label>Group</label><br><select id="item-grp-sel"></select></div>
+            <div><label>Item</label><br><select id="item-sel"></select></div>
+            <div class="search-box"><label>Search Items</label><br><input id="item-search"
+                    placeholder="Type to search across all items..."></div>
+            <div><label>Verdict Filter</label><br><select id="item-verdict-filter">
+                    <option value="">All</option>
+                    <option>Star</option>
+                    <option>Healthy</option>
+                    <option>Average</option>
+                    <option>Weak</option>
+                    <option>Risky</option>
+                </select></div>
+        </div>
+        <div class="kpi-row" id="item-kpis"></div>
+        <div class="chart-row">
+            <div class="chart-box">
+                <h3>Monthly Revenue Trend</h3><canvas id="item-monthly"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Party Breakdown (Revenue Share)</h3><canvas id="item-parties-chart"></canvas>
+            </div>
+        </div>
+        <h3 style="font-size:14px;margin:16px 0 8px;color:var(--text2)">Party Breakdown</h3>
+        <div class="table-wrap">
+            <table id="item-party-table">
+                <thead>
+                    <tr>
+                        <th data-col="name">Party</th>
+                        <th data-col="revenue">Revenue</th>
+                        <th data-col="qty">Qty</th>
+                        <th data-col="txns">Txns</th>
+                        <th data-col="share">Share%</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="compare" class="content">
+        <div class="controls">
+            <div><label>Add Group</label><br><select id="cmp-grp-sel">
+                    <option value="">Select group...</option>
+                </select></div>
+            <div><label>Add Item</label><br><select id="cmp-item-sel">
+                    <option value="">Select item...</option>
+                </select></div>
+        </div>
+        <div class="comp-tags" id="cmp-tags"></div>
+        <div class="kpi-row" id="cmp-kpis"></div>
+        <div class="chart-row">
+            <div class="chart-box full-width">
+                <h3>Revenue Trend Comparison</h3><canvas id="cmp-chart"></canvas>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table id="cmp-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Revenue</th>
+                        <th>Margin%</th>
+                        <th>Txns</th>
+                        <th>Buyers</th>
+                        <th>Verdict</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const D = { "months": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01"], "summary": { "total_revenue": 10458740.88, "total_groups": 8, "total_items": 156 }, "groups": { "Contactors & Starters": { "revenue": 727993.57, "margin": 212388.49, "margin_pct": 29.17, "qty": 18033.45, "buyers": 48, "txns": 539, "items_count": 21, "top_share": 26.53, "trend": 106.26, "verdict": "\u2b06 Strong", "monthly_rev": [33235.94, 49570.71, 33568.05, 33394.51, 25526.65, 37864.2, 34811.95, 45993.43, 50396.91, 26814.32, 37893.41, 32572.06, 30677.58, 50741.47, 47722.67, 30298.57, 37619.9, 47359.74, 24925.11], "monthly_margin": [8729.5, 12973.23, 14737.28, 13034.71, 10111.01, 10723.42, 7071.47, 11467.19, 14858.06, 14035.45, 11244.12, 10202.0, 11677.52, 12399.42, 11004.69, 9064.03, 11702.66, 6936.27, 9765.02], "top_buyers": [{ "name": "Gidsha Pharmaceuticals", "revenue": 275652.58 }, { "name": "Sunsafe Infra Services", "revenue": 145941.21 }, { "name": "Narmada Chemtech", "revenue": 223504.43 }, { "name": "Summit Tech Group", "revenue": 112055.72 }, { "name": "Atlas Trade Corp", "revenue": 252750.71 }], "top_items": [{ "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 95140.05, "margin": 21458.61 }, { "name": "Angle Grinder 4\" Bosch", "revenue": 94140.92, "margin": 29492.43 }, { "name": "Panel Light 2x2 40W LED", "revenue": 71683.41, "margin": 26708.23 }, { "name": "Portable Bag Closer Machine", "revenue": 64554.76, "margin": 16411.27 }, { "name": "Fire Extinguisher 6kg ABC", "revenue": 60541.36, "margin": 14194.94 }, { "name": "Flap Disc 100x16mm", "revenue": 59117.84, "margin": 15782.26 }, { "name": "Cutting Blade 4\" Yuri", "revenue": 58649.99, "margin": 14275.81 }, { "name": "Hex Nut 10mm 8.8", "revenue": 57995.83, "margin": 10536.29 }, { "name": "Elevator Bucket Bolt 8*32", "revenue": 56427.93, "margin": 15540.41 }, { "name": "Gear Oil 320 20 Ltr", "revenue": 49935.48, "margin": 19722.54 }], "all_items": [{ "name": "Panel Light 2x2 40W LED", "revenue": 71683.41, "margin_pct": 37.26, "qty": 1866.26, "avg_rate": 409.35, "txns": 25, "buyers": 3, "verdict": "Weak" }, { "name": "Food Grade Roll Coating", "revenue": 16773.57, "margin_pct": 12.15, "qty": 335.23, "avg_rate": 904.3, "txns": 50, "buyers": 11, "verdict": "Risky" }, { "name": "Fire Extinguisher 6kg ABC", "revenue": 60541.36, "margin_pct": 23.45, "qty": 806.85, "avg_rate": 346.74, "txns": 45, "buyers": 2, "verdict": "Healthy" }, { "name": "Cutting Blade 4\" Yuri", "revenue": 58649.99, "margin_pct": 24.34, "qty": 245.82, "avg_rate": 318.4, "txns": 10, "buyers": 3, "verdict": "Weak" }, { "name": "Wire Mesh D-Stoner 12-mesh", "revenue": 35996.57, "margin_pct": 11.17, "qty": 842.4, "avg_rate": 168.48, "txns": 10, "buyers": 8, "verdict": "Average" }, { "name": "Star Coupling 110", "revenue": 30802.74, "margin_pct": 31.43, "qty": 1548.93, "avg_rate": 690.69, "txns": 37, "buyers": 10, "verdict": "Star" }, { "name": "Elevator Bucket Bolt 8*32", "revenue": 56427.93, "margin_pct": 27.54, "qty": 949.77, "avg_rate": 492.93, "txns": 50, "buyers": 12, "verdict": "Healthy" }, { "name": "Angle Grinder 4\" Bosch", "revenue": 94140.92, "margin_pct": 31.33, "qty": 937.24, "avg_rate": 888.81, "txns": 18, "buyers": 19, "verdict": "Healthy" }, { "name": "Portable Bag Closer Machine", "revenue": 64554.76, "margin_pct": 25.42, "qty": 1359.65, "avg_rate": 589.79, "txns": 13, "buyers": 15, "verdict": "Average" }, { "name": "Contactor LC1D25 Schneider", "revenue": 14353.4, "margin_pct": 42.85, "qty": 673.65, "avg_rate": 212.71, "txns": 42, "buyers": 14, "verdict": "Healthy" }, { "name": "Hex Nut 10mm 8.8", "revenue": 57995.83, "margin_pct": 18.17, "qty": 187.03, "avg_rate": 296.59, "txns": 19, "buyers": 17, "verdict": "Average" }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 24901.02, "margin_pct": 43.83, "qty": 891.3, "avg_rate": 903.67, "txns": 39, "buyers": 15, "verdict": "Weak" }, { "name": "25mm Pipe Saddle Clamp", "revenue": 22640.06, "margin_pct": 37.63, "qty": 781.47, "avg_rate": 489.75, "txns": 25, "buyers": 17, "verdict": "Risky" }, { "name": "Self Drilling Screw 10x25", "revenue": 46326.78, "margin_pct": 37.35, "qty": 878.82, "avg_rate": 656.78, "txns": 32, "buyers": 18, "verdict": "Star" }, { "name": "PVC Conveyor Belt 3-Ply", "revenue": 29567.31, "margin_pct": 26.36, "qty": 707.91, "avg_rate": 349.34, "txns": 22, "buyers": 15, "verdict": "Star" }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 37811.89, "margin_pct": 30.68, "qty": 485.15, "avg_rate": 723.84, "txns": 37, "buyers": 19, "verdict": "Star" }, { "name": "Gear Oil 320 20 Ltr", "revenue": 49935.48, "margin_pct": 39.5, "qty": 85.28, "avg_rate": 991.31, "txns": 40, "buyers": 5, "verdict": "Weak" }, { "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 95140.05, "margin_pct": 22.55, "qty": 871.66, "avg_rate": 922.19, "txns": 27, "buyers": 3, "verdict": "Weak" }, { "name": "Flap Disc 100x16mm", "revenue": 59117.84, "margin_pct": 26.7, "qty": 548.78, "avg_rate": 472.25, "txns": 25, "buyers": 7, "verdict": "Star" }, { "name": "SS Trolley Heavy Duty", "revenue": 17540.76, "margin_pct": 44.33, "qty": 681.69, "avg_rate": 529.94, "txns": 45, "buyers": 14, "verdict": "Star" }, { "name": "Cable Gland PG-21 Brass", "revenue": 7356.08, "margin_pct": 39.71, "qty": 50.1, "avg_rate": 952.45, "txns": 30, "buyers": 19, "verdict": "Healthy" }] }, "Bearings & Couplings": { "revenue": 418498.14, "margin": 69417.63, "margin_pct": 16.59, "qty": 12170.05, "buyers": 132, "txns": 979, "items_count": 20, "top_share": 44.72, "trend": -11.33, "verdict": "\u2b06 Strong", "monthly_rev": [17874.51, 13724.01, 16558.09, 25161.23, 16707.4, 22164.12, 26590.35, 28624.46, 28249.37, 27940.85, 26851.92, 27781.28, 25436.87, 17599.17, 13673.72, 16834.66, 25655.97, 28003.8, 30324.94], "monthly_margin": [3811.29, 4777.68, 3436.5, 2621.2, 2257.72, 2347.5, 2225.98, 2520.83, 3426.29, 4965.44, 3192.81, 4014.99, 4068.02, 3652.68, 4048.66, 4729.62, 2896.97, 2374.37, 4196.42], "top_buyers": [{ "name": "Sterling Engineering Co.", "revenue": 51590.53 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 243607.57 }, { "name": "Prime Suppliers Ltd", "revenue": 116951.08 }, { "name": "Gidsha Pharmaceuticals", "revenue": 75721.69 }, { "name": "Progressive Enterprise", "revenue": 289773.76 }], "top_items": [{ "name": "Contactor LC1D25 Schneider", "revenue": 93159.7, "margin": 37574.44 }, { "name": "Elevator Bucket Bolt 8*32", "revenue": 84359.01, "margin": 11820.62 }, { "name": "Hydraulic Jack 10T", "revenue": 78718.58, "margin": 23717.3 }, { "name": "Welding Rod 3.15mm", "revenue": 74990.77, "margin": 6686.14 }, { "name": "V Belts C 094 (Fenner)", "revenue": 74503.57, "margin": 13672.22 }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 61731.13, "margin": 6663.84 }, { "name": "MCCB 100A 3P Schneider", "revenue": 57657.43, "margin": 19594.84 }, { "name": "Portable Bag Closer Machine", "revenue": 54076.93, "margin": 7541.19 }, { "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 47559.82, "margin": 6845.15 }, { "name": "25mm Pipe Saddle Clamp", "revenue": 46240.93, "margin": 9540.44 }], "all_items": [{ "name": "Welding Rod 3.15mm", "revenue": 74990.77, "margin_pct": 8.92, "qty": 1452.21, "avg_rate": 760.71, "txns": 50, "buyers": 16, "verdict": "Average" }, { "name": "PVC Conveyor Belt 3-Ply", "revenue": 9629.78, "margin_pct": 26.0, "qty": 1975.96, "avg_rate": 73.79, "txns": 23, "buyers": 2, "verdict": "Weak" }, { "name": "PU Belt 3mm", "revenue": 23986.28, "margin_pct": 9.33, "qty": 1868.74, "avg_rate": 99.96, "txns": 30, "buyers": 2, "verdict": "Risky" }, { "name": "Contactor LC1D25 Schneider", "revenue": 93159.7, "margin_pct": 40.33, "qty": 1772.03, "avg_rate": 971.44, "txns": 17, "buyers": 5, "verdict": "Risky" }, { "name": "GI Pipe 1\" B-Class", "revenue": 15247.84, "margin_pct": 27.68, "qty": 443.66, "avg_rate": 374.91, "txns": 38, "buyers": 8, "verdict": "Star" }, { "name": "MCCB 100A 3P Schneider", "revenue": 57657.43, "margin_pct": 33.98, "qty": 693.92, "avg_rate": 532.58, "txns": 40, "buyers": 17, "verdict": "Healthy" }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 34783.64, "margin_pct": 39.8, "qty": 706.6, "avg_rate": 165.62, "txns": 24, "buyers": 9, "verdict": "Healthy" }, { "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 47559.82, "margin_pct": 14.39, "qty": 1231.54, "avg_rate": 924.03, "txns": 5, "buyers": 4, "verdict": "Weak" }, { "name": "25mm Pipe Saddle Clamp", "revenue": 46240.93, "margin_pct": 20.63, "qty": 668.31, "avg_rate": 283.47, "txns": 12, "buyers": 20, "verdict": "Average" }, { "name": "Flap Disc 100x16mm", "revenue": 43415.76, "margin_pct": 25.06, "qty": 625.48, "avg_rate": 384.76, "txns": 46, "buyers": 13, "verdict": "Weak" }, { "name": "Wire Mesh D-Stoner 12-mesh", "revenue": 28670.28, "margin_pct": 24.09, "qty": 1051.85, "avg_rate": 108.41, "txns": 14, "buyers": 15, "verdict": "Weak" }, { "name": "Hydraulic Jack 10T", "revenue": 78718.58, "margin_pct": 30.13, "qty": 1122.66, "avg_rate": 648.05, "txns": 14, "buyers": 11, "verdict": "Average" }, { "name": "Portable Bag Closer Machine", "revenue": 54076.93, "margin_pct": 13.95, "qty": 165.66, "avg_rate": 152.43, "txns": 6, "buyers": 15, "verdict": "Healthy" }, { "name": "Angle Grinder 4\" Bosch", "revenue": 11702.92, "margin_pct": 10.05, "qty": 1863.19, "avg_rate": 429.99, "txns": 6, "buyers": 12, "verdict": "Healthy" }, { "name": "Air Compressor 50L", "revenue": 14718.31, "margin_pct": 8.26, "qty": 501.32, "avg_rate": 998.89, "txns": 14, "buyers": 15, "verdict": "Risky" }, { "name": "Earthing Chemical Compound", "revenue": 10951.61, "margin_pct": 34.65, "qty": 1728.73, "avg_rate": 313.31, "txns": 43, "buyers": 18, "verdict": "Healthy" }, { "name": "V Belts C 094 (Fenner)", "revenue": 74503.57, "margin_pct": 18.35, "qty": 1906.4, "avg_rate": 198.41, "txns": 48, "buyers": 9, "verdict": "Healthy" }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 61731.13, "margin_pct": 10.79, "qty": 1677.39, "avg_rate": 521.58, "txns": 6, "buyers": 8, "verdict": "Healthy" }, { "name": "Elevator Bucket Bolt 8*32", "revenue": 84359.01, "margin_pct": 14.01, "qty": 1680.21, "avg_rate": 993.03, "txns": 42, "buyers": 5, "verdict": "Healthy" }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 24724.71, "margin_pct": 32.2, "qty": 132.99, "avg_rate": 383.91, "txns": 8, "buyers": 4, "verdict": "Average" }] }, "Rubber Belts & Conveyors": { "revenue": 2305888.14, "margin": 520162.93, "margin_pct": 22.56, "qty": 10567.6, "buyers": 63, "txns": 567, "items_count": 16, "top_share": 38.9, "trend": 7.0, "verdict": "\u25cf Stable", "monthly_rev": [151294.19, 111614.14, 103884.76, 161782.58, 103132.6, 120141.75, 132675.3, 140916.38, 144086.93, 144415.93, 104771.17, 103778.91, 127158.25, 100075.35, 126208.9, 157235.78, 77302.64, 118163.12, 81000.09], "monthly_margin": [24186.77, 21814.09, 36981.54, 37278.54, 28481.15, 35003.84, 36045.86, 20953.89, 24023.81, 36748.74, 23614.54, 16696.82, 36596.97, 17885.82, 25464.08, 34631.54, 30510.12, 37260.17, 28144.7], "top_buyers": [{ "name": "Zenith Equipment", "revenue": 186769.05 }, { "name": "Nova Fabricators", "revenue": 292881.44 }, { "name": "Gidsha Pharmaceuticals", "revenue": 217597.28 }, { "name": "Crest Industrial", "revenue": 150796.09 }, { "name": "Silver Electricals", "revenue": 133120.82 }], "top_items": [{ "name": "PVC Conveyor Belt 3-Ply", "revenue": 87994.35, "margin": 10884.24 }, { "name": "MCCB 100A 3P Schneider", "revenue": 83058.47, "margin": 33833.43 }, { "name": "Gear Oil 320 20 Ltr", "revenue": 81352.39, "margin": 7519.31 }, { "name": "Taper Lock Pulley 200x3C", "revenue": 76521.2, "margin": 17120.07 }, { "name": "MCB 32A TP Schneider", "revenue": 75442.39, "margin": 30979.8 }, { "name": "Fire Extinguisher 6kg ABC", "revenue": 74153.64, "margin": 29917.73 }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 62557.2, "margin": 23136.75 }, { "name": "PU Belt 3mm", "revenue": 53734.89, "margin": 24167.62 }, { "name": "Self Drilling Screw 10x25", "revenue": 48625.35, "margin": 6873.58 }, { "name": "Portable Bag Closer Machine", "revenue": 41494.36, "margin": 9198.44 }], "all_items": [{ "name": "Portable Bag Closer Machine", "revenue": 41494.36, "margin_pct": 22.17, "qty": 629.77, "avg_rate": 424.43, "txns": 46, "buyers": 11, "verdict": "Risky" }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 39266.53, "margin_pct": 24.63, "qty": 477.8, "avg_rate": 879.73, "txns": 28, "buyers": 5, "verdict": "Weak" }, { "name": "PVC Conveyor Belt 3-Ply", "revenue": 87994.35, "margin_pct": 12.37, "qty": 1984.43, "avg_rate": 499.31, "txns": 40, "buyers": 10, "verdict": "Weak" }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 62557.2, "margin_pct": 36.98, "qty": 331.53, "avg_rate": 168.35, "txns": 8, "buyers": 5, "verdict": "Average" }, { "name": "PU Belt 3mm", "revenue": 53734.89, "margin_pct": 44.98, "qty": 1032.81, "avg_rate": 714.67, "txns": 36, "buyers": 15, "verdict": "Star" }, { "name": "Fire Extinguisher 6kg ABC", "revenue": 74153.64, "margin_pct": 40.35, "qty": 1589.83, "avg_rate": 775.59, "txns": 43, "buyers": 6, "verdict": "Weak" }, { "name": "MCCB 100A 3P Schneider", "revenue": 83058.47, "margin_pct": 40.73, "qty": 982.61, "avg_rate": 864.45, "txns": 33, "buyers": 10, "verdict": "Risky" }, { "name": "Cable Gland PG-21 Brass", "revenue": 16882.17, "margin_pct": 11.32, "qty": 1286.56, "avg_rate": 527.38, "txns": 9, "buyers": 20, "verdict": "Star" }, { "name": "Hydraulic Jack 10T", "revenue": 11387.32, "margin_pct": 35.56, "qty": 1073.99, "avg_rate": 460.69, "txns": 10, "buyers": 16, "verdict": "Average" }, { "name": "SS Sheet 8x4x0.6mm", "revenue": 26918.67, "margin_pct": 31.31, "qty": 368.51, "avg_rate": 752.79, "txns": 19, "buyers": 16, "verdict": "Healthy" }, { "name": "MCB 32A TP Schneider", "revenue": 75442.39, "margin_pct": 41.06, "qty": 1836.0, "avg_rate": 171.48, "txns": 15, "buyers": 2, "verdict": "Weak" }, { "name": "Gear Oil 320 20 Ltr", "revenue": 81352.39, "margin_pct": 9.24, "qty": 404.61, "avg_rate": 429.17, "txns": 46, "buyers": 17, "verdict": "Average" }, { "name": "25mm Pipe Saddle Clamp", "revenue": 34987.42, "margin_pct": 40.9, "qty": 339.91, "avg_rate": 67.65, "txns": 31, "buyers": 6, "verdict": "Risky" }, { "name": "Angle Grinder 4\" Bosch", "revenue": 7215.36, "margin_pct": 17.09, "qty": 1591.76, "avg_rate": 207.57, "txns": 27, "buyers": 13, "verdict": "Weak" }, { "name": "Self Drilling Screw 10x25", "revenue": 48625.35, "margin_pct": 14.14, "qty": 976.24, "avg_rate": 769.07, "txns": 39, "buyers": 17, "verdict": "Average" }, { "name": "Taper Lock Pulley 200x3C", "revenue": 76521.2, "margin_pct": 22.37, "qty": 155.68, "avg_rate": 147.58, "txns": 30, "buyers": 2, "verdict": "Star" }] }, "MCCB & Protection": { "revenue": 2082526.47, "margin": 263716.75, "margin_pct": 12.66, "qty": 7189.28, "buyers": 56, "txns": 345, "items_count": 15, "top_share": 25.9, "trend": 66.24, "verdict": "\u25cf Stable", "monthly_rev": [143551.84, 128719.07, 80578.35, 89420.32, 98575.13, 134337.01, 100922.37, 68605.82, 142527.46, 81877.77, 86754.81, 68137.98, 147568.78, 103764.32, 66395.53, 102534.44, 93103.64, 91517.54, 97355.46], "monthly_margin": [17313.42, 12707.51, 8904.06, 16278.25, 16488.8, 10923.3, 10954.55, 13257.92, 18176.96, 11726.57, 8659.97, 11816.18, 10386.51, 10720.26, 17618.93, 13337.73, 11574.69, 13833.25, 9332.34], "top_buyers": [{ "name": "Progressive Enterprise", "revenue": 178778.8 }, { "name": "Global Hardware Works", "revenue": 70088.51 }, { "name": "Silver Electricals", "revenue": 234979.66 }, { "name": "Bhavya Food Products Pvt Ltd", "revenue": 64655.47 }, { "name": "Gidsha Pharmaceuticals", "revenue": 209922.82 }], "top_items": [{ "name": "Flap Disc 100x16mm", "revenue": 86437.47, "margin": 12933.02 }, { "name": "Electric Motor 5HP 1440 RPM", "revenue": 86091.64, "margin": 7176.13 }, { "name": "Hex Nut 10mm 8.8", "revenue": 85614.38, "margin": 18386.12 }, { "name": "Food Grade Roll Coating", "revenue": 84990.78, "margin": 26911.67 }, { "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 75929.62, "margin": 6631.16 }, { "name": "Wire Mesh D-Stoner 12-mesh", "revenue": 74611.31, "margin": 9571.8 }, { "name": "Back Filling Compound", "revenue": 72872.06, "margin": 19823.04 }, { "name": "MCCB 100A 3P Schneider", "revenue": 62719.92, "margin": 27771.14 }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 58722.84, "margin": 24595.82 }, { "name": "Taper Lock Pulley 200x3C", "revenue": 44727.42, "margin": 4940.85 }], "all_items": [{ "name": "Back Filling Compound", "revenue": 72872.06, "margin_pct": 27.2, "qty": 747.93, "avg_rate": 167.54, "txns": 15, "buyers": 10, "verdict": "Star" }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 58722.84, "margin_pct": 41.88, "qty": 398.33, "avg_rate": 750.43, "txns": 20, "buyers": 7, "verdict": "Risky" }, { "name": "Taper Lock Pulley 200x3C", "revenue": 44727.42, "margin_pct": 11.05, "qty": 1825.57, "avg_rate": 563.81, "txns": 33, "buyers": 16, "verdict": "Average" }, { "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 75929.62, "margin_pct": 8.73, "qty": 1258.88, "avg_rate": 493.85, "txns": 19, "buyers": 5, "verdict": "Average" }, { "name": "Hydraulic Jack 10T", "revenue": 39160.23, "margin_pct": 34.12, "qty": 510.06, "avg_rate": 896.09, "txns": 22, "buyers": 17, "verdict": "Healthy" }, { "name": "Hex Nut 10mm 8.8", "revenue": 85614.38, "margin_pct": 21.48, "qty": 233.03, "avg_rate": 36.3, "txns": 32, "buyers": 14, "verdict": "Healthy" }, { "name": "Portable Bag Closer Machine", "revenue": 9608.41, "margin_pct": 16.96, "qty": 1229.12, "avg_rate": 454.52, "txns": 38, "buyers": 14, "verdict": "Healthy" }, { "name": "Flap Disc 100x16mm", "revenue": 86437.47, "margin_pct": 14.96, "qty": 1685.75, "avg_rate": 76.21, "txns": 10, "buyers": 13, "verdict": "Healthy" }, { "name": "Wire Mesh D-Stoner 12-mesh", "revenue": 74611.31, "margin_pct": 12.83, "qty": 1731.29, "avg_rate": 71.96, "txns": 47, "buyers": 6, "verdict": "Average" }, { "name": "MCCB 100A 3P Schneider", "revenue": 62719.92, "margin_pct": 44.28, "qty": 462.6, "avg_rate": 670.15, "txns": 9, "buyers": 7, "verdict": "Weak" }, { "name": "Food Grade Roll Coating", "revenue": 84990.78, "margin_pct": 31.66, "qty": 1627.88, "avg_rate": 966.69, "txns": 15, "buyers": 7, "verdict": "Risky" }, { "name": "Angle Grinder 4\" Bosch", "revenue": 19986.72, "margin_pct": 20.24, "qty": 1900.33, "avg_rate": 202.7, "txns": 49, "buyers": 4, "verdict": "Weak" }, { "name": "GI Pipe 1\" B-Class", "revenue": 39338.26, "margin_pct": 32.46, "qty": 726.03, "avg_rate": 163.65, "txns": 6, "buyers": 2, "verdict": "Risky" }, { "name": "Electric Motor 5HP 1440 RPM", "revenue": 86091.64, "margin_pct": 8.34, "qty": 828.21, "avg_rate": 224.92, "txns": 45, "buyers": 2, "verdict": "Risky" }, { "name": "PU Belt 3mm", "revenue": 20658.97, "margin_pct": 23.47, "qty": 746.95, "avg_rate": 158.85, "txns": 5, "buyers": 8, "verdict": "Weak" }] }, "Power Tools": { "revenue": 650203.53, "margin": 114162.39, "margin_pct": 17.56, "qty": 37126.12, "buyers": 31, "txns": 282, "items_count": 22, "top_share": 38.5, "trend": -12.82, "verdict": "\u2b06 Strong", "monthly_rev": [30299.29, 40793.77, 34950.17, 21018.83, 37584.04, 24100.65, 31620.55, 40592.65, 32039.56, 28725.55, 20689.83, 36942.07, 33698.62, 20886.37, 35058.09, 39119.32, 33845.45, 37051.39, 27121.16], "monthly_margin": [5064.71, 4757.36, 6070.65, 6475.18, 5101.23, 6372.76, 5903.52, 7786.15, 5843.61, 8319.86, 6157.93, 4008.3, 4897.52, 7056.59, 6256.67, 5661.87, 7934.13, 8252.67, 7621.24], "top_buyers": [{ "name": "Pioneer Manufacturing", "revenue": 204597.58 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 98502.9 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 252366.88 }, { "name": "Sterling Engineering Co.", "revenue": 214695.04 }, { "name": "Crest Industrial", "revenue": 239545.12 }], "top_items": [{ "name": "Back Filling Compound", "revenue": 90820.02, "margin": 34065.36 }, { "name": "Star Coupling 110", "revenue": 90126.38, "margin": 13214.05 }, { "name": "Hex Nut 10mm 8.8", "revenue": 85728.34, "margin": 20000.56 }, { "name": "Welding Rod 3.15mm", "revenue": 77275.13, "margin": 16865.43 }, { "name": "PU Belt 3mm", "revenue": 61068.41, "margin": 25105.42 }, { "name": "25mm Pipe Saddle Clamp", "revenue": 60653.09, "margin": 21175.81 }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 59453.08, "margin": 20533.25 }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 58916.48, "margin": 17672.71 }, { "name": "Taper Lock Pulley 200x3C", "revenue": 55936.51, "margin": 20779.21 }, { "name": "DOL Starter 10HP", "revenue": 55433.58, "margin": 9744.95 }], "all_items": [{ "name": "Earthing Chemical Compound", "revenue": 40152.24, "margin_pct": 13.61, "qty": 121.85, "avg_rate": 568.99, "txns": 9, "buyers": 16, "verdict": "Risky" }, { "name": "Industrial Drill 13mm", "revenue": 9605.69, "margin_pct": 44.49, "qty": 1066.79, "avg_rate": 20.38, "txns": 46, "buyers": 13, "verdict": "Average" }, { "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 8549.2, "margin_pct": 40.39, "qty": 1440.03, "avg_rate": 824.85, "txns": 37, "buyers": 15, "verdict": "Weak" }, { "name": "Gear Oil 320 20 Ltr", "revenue": 5427.9, "margin_pct": 11.87, "qty": 485.47, "avg_rate": 143.18, "txns": 49, "buyers": 4, "verdict": "Risky" }, { "name": "V Belts C 094 (Fenner)", "revenue": 21933.2, "margin_pct": 37.86, "qty": 1515.79, "avg_rate": 54.42, "txns": 35, "buyers": 5, "verdict": "Star" }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 58916.48, "margin_pct": 30.0, "qty": 607.36, "avg_rate": 614.93, "txns": 8, "buyers": 7, "verdict": "Risky" }, { "name": "Taper Lock Pulley 200x3C", "revenue": 55936.51, "margin_pct": 37.15, "qty": 590.81, "avg_rate": 989.14, "txns": 30, "buyers": 14, "verdict": "Healthy" }, { "name": "Lug 1.5 sqmm 4mm Copper Pin", "revenue": 38366.48, "margin_pct": 37.04, "qty": 333.58, "avg_rate": 560.18, "txns": 19, "buyers": 3, "verdict": "Healthy" }, { "name": "MCCB 100A 3P Schneider", "revenue": 30302.54, "margin_pct": 16.84, "qty": 1587.64, "avg_rate": 643.13, "txns": 24, "buyers": 11, "verdict": "Healthy" }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 59453.08, "margin_pct": 34.54, "qty": 953.89, "avg_rate": 246.23, "txns": 10, "buyers": 11, "verdict": "Star" }, { "name": "Panel Light 2x2 40W LED", "revenue": 22708.62, "margin_pct": 13.02, "qty": 1320.23, "avg_rate": 855.85, "txns": 38, "buyers": 17, "verdict": "Healthy" }, { "name": "25mm Pipe Saddle Clamp", "revenue": 60653.09, "margin_pct": 34.91, "qty": 310.07, "avg_rate": 612.37, "txns": 49, "buyers": 9, "verdict": "Healthy" }, { "name": "Star Coupling 110", "revenue": 90126.38, "margin_pct": 14.66, "qty": 1524.52, "avg_rate": 440.29, "txns": 49, "buyers": 7, "verdict": "Weak" }, { "name": "Fire Extinguisher 6kg ABC", "revenue": 46487.03, "margin_pct": 15.6, "qty": 964.57, "avg_rate": 499.19, "txns": 28, "buyers": 20, "verdict": "Healthy" }, { "name": "Flap Disc 100x16mm", "revenue": 48528.21, "margin_pct": 33.15, "qty": 80.6, "avg_rate": 234.88, "txns": 29, "buyers": 14, "verdict": "Star" }, { "name": "MCB 32A TP Schneider", "revenue": 11918.83, "margin_pct": 19.81, "qty": 944.82, "avg_rate": 361.01, "txns": 38, "buyers": 7, "verdict": "Healthy" }, { "name": "Back Filling Compound", "revenue": 90820.02, "margin_pct": 37.51, "qty": 495.46, "avg_rate": 203.37, "txns": 14, "buyers": 9, "verdict": "Star" }, { "name": "Hex Nut 10mm 8.8", "revenue": 85728.34, "margin_pct": 23.33, "qty": 524.82, "avg_rate": 882.42, "txns": 8, "buyers": 9, "verdict": "Risky" }, { "name": "Welding Rod 3.15mm", "revenue": 77275.13, "margin_pct": 21.83, "qty": 449.08, "avg_rate": 313.83, "txns": 36, "buyers": 4, "verdict": "Risky" }, { "name": "PU Belt 3mm", "revenue": 61068.41, "margin_pct": 41.11, "qty": 894.13, "avg_rate": 96.72, "txns": 36, "buyers": 3, "verdict": "Average" }, { "name": "DOL Starter 10HP", "revenue": 55433.58, "margin_pct": 17.58, "qty": 633.36, "avg_rate": 480.24, "txns": 10, "buyers": 14, "verdict": "Average" }, { "name": "GI Pipe 1\" B-Class", "revenue": 49020.33, "margin_pct": 37.34, "qty": 1042.86, "avg_rate": 936.85, "txns": 28, "buyers": 15, "verdict": "Healthy" }] }, "General Hardware": { "revenue": 507109.68, "margin": 119985.17, "margin_pct": 23.66, "qty": 5272.77, "buyers": 64, "txns": 951, "items_count": 22, "top_share": 18.31, "trend": 4.81, "verdict": "\u2b07 Weak", "monthly_rev": [17100.18, 17945.03, 31104.83, 33081.8, 22044.74, 34350.22, 23239.69, 31091.79, 30506.96, 33003.19, 23518.22, 36394.8, 20383.25, 23869.2, 27371.74, 25569.07, 17986.69, 34624.16, 18239.15], "monthly_margin": [6857.05, 4000.52, 4248.1, 7351.94, 4022.25, 8011.58, 4370.12, 8713.68, 4646.05, 5803.08, 6890.41, 5592.86, 4289.16, 4187.63, 5154.4, 5853.43, 7942.78, 7534.56, 4426.08], "top_buyers": [{ "name": "Summit Tech Group", "revenue": 44812.33 }, { "name": "Crest Industrial", "revenue": 120630.85 }, { "name": "Narmada Chemtech", "revenue": 77282.36 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 82845.76 }, { "name": "Nova Fabricators", "revenue": 278382.83 }], "top_items": [{ "name": "Taper Lock Pulley 200x3C", "revenue": 99038.16, "margin": 24215.42 }, { "name": "MCCB 100A 3P Schneider", "revenue": 92061.4, "margin": 30077.79 }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 88804.01, "margin": 20225.35 }, { "name": "DOL Starter 10HP", "revenue": 82640.12, "margin": 14302.68 }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 71735.98, "margin": 24367.17 }, { "name": "GI Pipe 1\" B-Class", "revenue": 64670.61, "margin": 23447.89 }, { "name": "PU Belt 3mm", "revenue": 63992.88, "margin": 23200.52 }, { "name": "25mm Pipe Saddle Clamp", "revenue": 60661.41, "margin": 20103.03 }, { "name": "Portable Bag Closer Machine", "revenue": 49221.35, "margin": 16573.97 }, { "name": "Star Coupling 110", "revenue": 44167.35, "margin": 4875.14 }], "all_items": [{ "name": "Hex Nut 10mm 8.8", "revenue": 8046.09, "margin_pct": 21.91, "qty": 1025.62, "avg_rate": 261.45, "txns": 50, "buyers": 19, "verdict": "Healthy" }, { "name": "25mm Pipe Saddle Clamp", "revenue": 60661.41, "margin_pct": 33.14, "qty": 1429.13, "avg_rate": 478.07, "txns": 14, "buyers": 15, "verdict": "Risky" }, { "name": "MCB 32A TP Schneider", "revenue": 38964.08, "margin_pct": 36.95, "qty": 360.76, "avg_rate": 318.85, "txns": 36, "buyers": 14, "verdict": "Average" }, { "name": "Food Grade Roll Coating", "revenue": 29941.14, "margin_pct": 22.05, "qty": 1757.36, "avg_rate": 768.52, "txns": 21, "buyers": 8, "verdict": "Risky" }, { "name": "PU Belt 3mm", "revenue": 63992.88, "margin_pct": 36.25, "qty": 1542.59, "avg_rate": 770.95, "txns": 43, "buyers": 4, "verdict": "Average" }, { "name": "Industrial Drill 13mm", "revenue": 33113.57, "margin_pct": 15.81, "qty": 985.23, "avg_rate": 194.95, "txns": 18, "buyers": 7, "verdict": "Healthy" }, { "name": "Taper Lock Pulley 200x3C", "revenue": 99038.16, "margin_pct": 24.45, "qty": 1955.47, "avg_rate": 890.82, "txns": 13, "buyers": 9, "verdict": "Average" }, { "name": "Portable Bag Closer Machine", "revenue": 49221.35, "margin_pct": 33.67, "qty": 766.51, "avg_rate": 11.38, "txns": 5, "buyers": 18, "verdict": "Risky" }, { "name": "MCCB 100A 3P Schneider", "revenue": 92061.4, "margin_pct": 32.67, "qty": 274.25, "avg_rate": 598.09, "txns": 12, "buyers": 3, "verdict": "Risky" }, { "name": "Contactor LC1D25 Schneider", "revenue": 39569.39, "margin_pct": 27.52, "qty": 1087.21, "avg_rate": 569.91, "txns": 47, "buyers": 7, "verdict": "Healthy" }, { "name": "DOL Starter 10HP", "revenue": 82640.12, "margin_pct": 17.31, "qty": 1338.7, "avg_rate": 411.81, "txns": 39, "buyers": 4, "verdict": "Healthy" }, { "name": "GI Pipe 1\" B-Class", "revenue": 64670.61, "margin_pct": 36.26, "qty": 1866.21, "avg_rate": 866.51, "txns": 44, "buyers": 12, "verdict": "Risky" }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 71735.98, "margin_pct": 33.97, "qty": 1378.49, "avg_rate": 323.02, "txns": 34, "buyers": 9, "verdict": "Risky" }, { "name": "SS Trolley Heavy Duty", "revenue": 25511.87, "margin_pct": 34.01, "qty": 1745.73, "avg_rate": 396.15, "txns": 42, "buyers": 14, "verdict": "Healthy" }, { "name": "Earthing Chemical Compound", "revenue": 29958.84, "margin_pct": 16.38, "qty": 703.0, "avg_rate": 436.24, "txns": 18, "buyers": 3, "verdict": "Weak" }, { "name": "Hex Bolt 10x40mm 8.8 Grade", "revenue": 12205.31, "margin_pct": 41.86, "qty": 1064.38, "avg_rate": 828.51, "txns": 50, "buyers": 7, "verdict": "Risky" }, { "name": "Star Coupling 110", "revenue": 44167.35, "margin_pct": 11.04, "qty": 1620.53, "avg_rate": 229.33, "txns": 48, "buyers": 10, "verdict": "Average" }, { "name": "Gear Oil 320 20 Ltr", "revenue": 39683.07, "margin_pct": 29.35, "qty": 872.19, "avg_rate": 773.81, "txns": 48, "buyers": 15, "verdict": "Average" }, { "name": "Wire Mesh D-Stoner 12-mesh", "revenue": 8097.28, "margin_pct": 16.63, "qty": 1700.77, "avg_rate": 376.99, "txns": 37, "buyers": 8, "verdict": "Weak" }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 88804.01, "margin_pct": 22.78, "qty": 427.13, "avg_rate": 924.12, "txns": 10, "buyers": 3, "verdict": "Weak" }, { "name": "Fire Extinguisher 6kg ABC", "revenue": 16396.02, "margin_pct": 35.36, "qty": 766.22, "avg_rate": 376.74, "txns": 30, "buyers": 4, "verdict": "Star" }, { "name": "SS Sheet 8x4x0.6mm", "revenue": 7864.75, "margin_pct": 19.04, "qty": 178.69, "avg_rate": 48.99, "txns": 45, "buyers": 20, "verdict": "Weak" }] }, "Fire Safety Systems": { "revenue": 1929434.96, "margin": 445978.5, "margin_pct": 23.11, "qty": 28408.97, "buyers": 62, "txns": 817, "items_count": 25, "top_share": 29.2, "trend": -16.94, "verdict": "\u2b07 Weak", "monthly_rev": [89816.93, 120600.38, 104295.3, 105528.04, 117426.73, 99355.61, 108090.13, 140331.85, 63280.12, 85346.51, 75277.49, 98533.05, 109172.8, 87757.99, 96247.74, 91791.2, 83319.72, 80453.8, 129658.46], "monthly_margin": [24518.87, 20572.14, 23304.28, 16902.04, 16650.75, 23408.9, 16443.42, 32094.11, 16099.37, 23373.74, 19372.99, 30258.7, 27976.86, 21518.53, 22503.78, 21162.32, 21995.2, 29779.69, 32483.77], "top_buyers": [{ "name": "Crest Industrial", "revenue": 265778.76 }, { "name": "Pioneer Manufacturing", "revenue": 156853.65 }, { "name": "Nova Fabricators", "revenue": 155664.14 }, { "name": "Narmada Chemtech", "revenue": 142279.19 }, { "name": "Sunsafe Infra Services", "revenue": 232900.36 }], "top_items": [{ "name": "SS Trolley Heavy Duty", "revenue": 93002.27, "margin": 35392.69 }, { "name": "Electric Motor 5HP 1440 RPM", "revenue": 91732.21, "margin": 11888.64 }, { "name": "PVC Conveyor Belt 3-Ply", "revenue": 87046.47, "margin": 27359.18 }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 86302.18, "margin": 23911.5 }, { "name": "Portable Bag Closer Machine", "revenue": 84412.79, "margin": 9055.58 }, { "name": "SS Sheet 8x4x0.6mm", "revenue": 82374.92, "margin": 36164.99 }, { "name": "Elevator Bucket Bolt 8*32", "revenue": 80727.83, "margin": 27887.23 }, { "name": "Taper Lock Pulley 200x3C", "revenue": 80494.57, "margin": 19020.48 }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 76726.21, "margin": 26870.81 }, { "name": "Back Filling Compound", "revenue": 74723.04, "margin": 27902.62 }], "all_items": [{ "name": "Portable Bag Closer Machine", "revenue": 84412.79, "margin_pct": 10.73, "qty": 1155.24, "avg_rate": 605.74, "txns": 22, "buyers": 7, "verdict": "Healthy" }, { "name": "PVC Conveyor Belt 3-Ply", "revenue": 87046.47, "margin_pct": 31.43, "qty": 1779.67, "avg_rate": 171.6, "txns": 29, "buyers": 15, "verdict": "Weak" }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 86302.18, "margin_pct": 27.71, "qty": 1682.17, "avg_rate": 584.13, "txns": 20, "buyers": 16, "verdict": "Risky" }, { "name": "Air Compressor 50L", "revenue": 62835.69, "margin_pct": 32.63, "qty": 820.01, "avg_rate": 955.94, "txns": 49, "buyers": 7, "verdict": "Average" }, { "name": "Elevator Bucket Bolt 8*32", "revenue": 80727.83, "margin_pct": 34.54, "qty": 1328.3, "avg_rate": 710.59, "txns": 17, "buyers": 20, "verdict": "Risky" }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 76726.21, "margin_pct": 35.02, "qty": 723.84, "avg_rate": 136.18, "txns": 8, "buyers": 9, "verdict": "Weak" }, { "name": "Back Filling Compound", "revenue": 74723.04, "margin_pct": 37.34, "qty": 937.55, "avg_rate": 698.67, "txns": 32, "buyers": 16, "verdict": "Weak" }, { "name": "Food Grade Roll Coating", "revenue": 44338.38, "margin_pct": 27.33, "qty": 1869.06, "avg_rate": 85.08, "txns": 26, "buyers": 13, "verdict": "Risky" }, { "name": "SS Sheet 8x4x0.6mm", "revenue": 82374.92, "margin_pct": 43.9, "qty": 1273.03, "avg_rate": 312.9, "txns": 33, "buyers": 12, "verdict": "Average" }, { "name": "PU Belt 3mm", "revenue": 49603.02, "margin_pct": 30.15, "qty": 177.7, "avg_rate": 78.92, "txns": 43, "buyers": 2, "verdict": "Star" }, { "name": "Taper Lock Pulley 200x3C", "revenue": 80494.57, "margin_pct": 23.63, "qty": 1657.57, "avg_rate": 176.26, "txns": 36, "buyers": 19, "verdict": "Risky" }, { "name": "Angle Grinder 4\" Bosch", "revenue": 56996.92, "margin_pct": 9.15, "qty": 992.17, "avg_rate": 364.67, "txns": 40, "buyers": 4, "verdict": "Weak" }, { "name": "Star Coupling 110", "revenue": 68809.9, "margin_pct": 33.37, "qty": 1604.91, "avg_rate": 361.78, "txns": 37, "buyers": 14, "verdict": "Average" }, { "name": "MCB 32A TP Schneider", "revenue": 41484.41, "margin_pct": 10.02, "qty": 1455.23, "avg_rate": 864.63, "txns": 28, "buyers": 16, "verdict": "Average" }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 24422.97, "margin_pct": 22.8, "qty": 1456.73, "avg_rate": 618.25, "txns": 46, "buyers": 15, "verdict": "Star" }, { "name": "Hydraulic Jack 10T", "revenue": 68759.46, "margin_pct": 39.18, "qty": 1716.92, "avg_rate": 803.4, "txns": 34, "buyers": 14, "verdict": "Average" }, { "name": "Lug 1.5 sqmm 4mm Copper Pin", "revenue": 50024.33, "margin_pct": 17.91, "qty": 1045.91, "avg_rate": 336.72, "txns": 46, "buyers": 4, "verdict": "Average" }, { "name": "25mm Pipe Saddle Clamp", "revenue": 35832.82, "margin_pct": 16.9, "qty": 1052.02, "avg_rate": 664.37, "txns": 16, "buyers": 3, "verdict": "Weak" }, { "name": "Wire Mesh D-Stoner 12-mesh", "revenue": 72986.28, "margin_pct": 17.12, "qty": 237.86, "avg_rate": 871.17, "txns": 17, "buyers": 5, "verdict": "Average" }, { "name": "Contactor LC1D25 Schneider", "revenue": 16689.77, "margin_pct": 22.86, "qty": 1941.21, "avg_rate": 724.88, "txns": 34, "buyers": 8, "verdict": "Star" }, { "name": "V Belts C 094 (Fenner)", "revenue": 42670.16, "margin_pct": 8.25, "qty": 1597.07, "avg_rate": 335.09, "txns": 16, "buyers": 20, "verdict": "Average" }, { "name": "SS Trolley Heavy Duty", "revenue": 93002.27, "margin_pct": 38.06, "qty": 630.72, "avg_rate": 322.71, "txns": 23, "buyers": 7, "verdict": "Healthy" }, { "name": "Panel Light 2x2 40W LED", "revenue": 36941.89, "margin_pct": 9.59, "qty": 769.57, "avg_rate": 599.87, "txns": 48, "buyers": 15, "verdict": "Star" }, { "name": "Electric Motor 5HP 1440 RPM", "revenue": 91732.21, "margin_pct": 12.96, "qty": 362.12, "avg_rate": 506.7, "txns": 40, "buyers": 13, "verdict": "Healthy" }, { "name": "Welding Rod 3.15mm", "revenue": 19242.52, "margin_pct": 23.94, "qty": 1818.23, "avg_rate": 661.27, "txns": 13, "buyers": 20, "verdict": "Risky" }] }, "Induction Motors": { "revenue": 1837086.39, "margin": 284671.47, "margin_pct": 15.5, "qty": 25268.84, "buyers": 42, "txns": 862, "items_count": 15, "top_share": 26.47, "trend": 58.0, "verdict": "\u25cf Stable", "monthly_rev": [124063.34, 88963.99, 110566.7, 130855.16, 133138.53, 61869.05, 98779.55, 91523.98, 65397.81, 108676.84, 134942.14, 86548.18, 84719.29, 96308.59, 59072.02, 59394.65, 133216.86, 106709.4, 73301.37], "monthly_margin": [16500.55, 13611.16, 20809.93, 16651.05, 15659.27, 9320.26, 20187.3, 19357.29, 19684.36, 9918.67, 8994.06, 12038.77, 12280.37, 14653.88, 12728.19, 14141.12, 19499.32, 15575.54, 18297.34], "top_buyers": [{ "name": "Bhavya Food Products Pvt Ltd", "revenue": 296185.23 }, { "name": "Gidsha Pharmaceuticals", "revenue": 231301.94 }, { "name": "Omega Trading Co", "revenue": 68558.36 }, { "name": "Crest Industrial", "revenue": 83975.46 }, { "name": "Silver Electricals", "revenue": 102643.55 }], "top_items": [{ "name": "GI Pipe 1\" B-Class", "revenue": 96443.76, "margin": 35439.83 }, { "name": "Contactor LC1D25 Schneider", "revenue": 93387.5, "margin": 19031.06 }, { "name": "Food Grade Roll Coating", "revenue": 89724.65, "margin": 38453.69 }, { "name": "25mm Pipe Saddle Clamp", "revenue": 84284.39, "margin": 27191.84 }, { "name": "Flap Disc 100x16mm", "revenue": 82657.83, "margin": 24333.71 }, { "name": "Star Coupling 110", "revenue": 70742.59, "margin": 27580.55 }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 67258.97, "margin": 28964.34 }, { "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 51867.88, "margin": 12790.49 }, { "name": "Self Drilling Screw 10x25", "revenue": 39900.16, "margin": 11914.6 }, { "name": "Hex Nut 10mm 8.8", "revenue": 38250.03, "margin": 4591.47 }], "all_items": [{ "name": "Flap Disc 100x16mm", "revenue": 82657.83, "margin_pct": 29.44, "qty": 843.43, "avg_rate": 894.91, "txns": 40, "buyers": 9, "verdict": "Risky" }, { "name": "Back Filling Compound", "revenue": 22848.95, "margin_pct": 15.47, "qty": 99.46, "avg_rate": 602.69, "txns": 18, "buyers": 13, "verdict": "Star" }, { "name": "GI Pipe 1\" B-Class", "revenue": 96443.76, "margin_pct": 36.75, "qty": 446.35, "avg_rate": 871.29, "txns": 39, "buyers": 16, "verdict": "Star" }, { "name": "Contactor LC1D25 Schneider", "revenue": 93387.5, "margin_pct": 20.38, "qty": 1591.41, "avg_rate": 35.32, "txns": 48, "buyers": 12, "verdict": "Star" }, { "name": "Electric Motor 5HP 1440 RPM", "revenue": 34682.29, "margin_pct": 21.21, "qty": 1786.59, "avg_rate": 258.7, "txns": 31, "buyers": 12, "verdict": "Risky" }, { "name": "Star Coupling 110", "revenue": 70742.59, "margin_pct": 38.99, "qty": 863.99, "avg_rate": 376.27, "txns": 18, "buyers": 12, "verdict": "Healthy" }, { "name": "Polycab 1C x 10 sqmm Flexible", "revenue": 51867.88, "margin_pct": 24.66, "qty": 325.0, "avg_rate": 140.11, "txns": 39, "buyers": 9, "verdict": "Weak" }, { "name": "Wire Mesh D-Stoner 12-mesh", "revenue": 36401.3, "margin_pct": 22.16, "qty": 1550.45, "avg_rate": 535.27, "txns": 46, "buyers": 6, "verdict": "Healthy" }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 67258.97, "margin_pct": 43.06, "qty": 1723.07, "avg_rate": 998.14, "txns": 19, "buyers": 13, "verdict": "Healthy" }, { "name": "Self Drilling Screw 10x25", "revenue": 39900.16, "margin_pct": 29.86, "qty": 294.37, "avg_rate": 424.41, "txns": 41, "buyers": 7, "verdict": "Average" }, { "name": "Cable Gland PG-21 Brass", "revenue": 35491.42, "margin_pct": 28.38, "qty": 1800.73, "avg_rate": 391.77, "txns": 23, "buyers": 10, "verdict": "Star" }, { "name": "Hex Nut 10mm 8.8", "revenue": 38250.03, "margin_pct": 12.0, "qty": 1544.24, "avg_rate": 68.03, "txns": 26, "buyers": 17, "verdict": "Healthy" }, { "name": "25mm Pipe Saddle Clamp", "revenue": 84284.39, "margin_pct": 32.26, "qty": 214.2, "avg_rate": 70.04, "txns": 35, "buyers": 19, "verdict": "Risky" }, { "name": "Food Grade Roll Coating", "revenue": 89724.65, "margin_pct": 42.86, "qty": 635.97, "avg_rate": 797.73, "txns": 12, "buyers": 4, "verdict": "Weak" }, { "name": "Portable Bag Closer Machine", "revenue": 18082.59, "margin_pct": 28.47, "qty": 611.87, "avg_rate": 986.83, "txns": 27, "buyers": 16, "verdict": "Average" }] } }, "items": { "Panel Light 2x2 40W LED": { "group": "Fire Safety Systems", "revenue": 36941.89, "margin_pct": 9.59, "qty": 769.57, "avg_rate": 599.87, "txns": 48, "buyers": 15, "bulk_score": 16.03, "verdict": "Star", "monthly_rev": [2571.0, 2357.93, 1738.77, 1467.69, 1728.45, 2671.26, 2586.54, 2463.64, 2550.82, 2653.85, 2598.67, 1442.02, 2702.88, 1966.62, 2399.93, 1450.73, 1952.2, 2167.01, 1260.65], "parties": [{ "name": "Sunsafe Infra Services", "revenue": 9051.63, "qty": 222.47, "txns": 3 }, { "name": "Apex Industrial Solutions", "revenue": 5256.51, "qty": 226.63, "txns": 2 }, { "name": "Omega Trading Co", "revenue": 4378.38, "qty": 207.89, "txns": 15 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 2095.6, "qty": 93.66, "txns": 4 }] }, "Food Grade Roll Coating": { "group": "Induction Motors", "revenue": 89724.65, "margin_pct": 42.86, "qty": 635.97, "avg_rate": 797.73, "txns": 12, "buyers": 4, "bulk_score": 53.0, "verdict": "Weak", "monthly_rev": [5230.72, 3863.13, 5748.32, 4631.41, 6215.39, 5649.22, 5189.12, 5543.66, 3205.35, 4061.87, 6041.26, 4687.98, 5362.0, 4824.36, 4872.37, 6317.16, 3576.22, 3533.45, 5818.86], "parties": [{ "name": "Sterling Engineering Co.", "revenue": 30845.28, "qty": 51.61, "txns": 1 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 29925.57, "qty": 84.61, "txns": 3 }, { "name": "Summit Tech Group", "revenue": 25287.92, "qty": 102.67, "txns": 4 }, { "name": "Global Hardware Works", "revenue": 17795.69, "qty": 154.99, "txns": 3 }, { "name": "Narmada Chemtech", "revenue": 15887.06, "qty": 174.44, "txns": 3 }, { "name": "Apex Industrial Solutions", "revenue": 12480.23, "qty": 166.78, "txns": 2 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 5669.21, "qty": 62.18, "txns": 1 }] }, "Fire Extinguisher 6kg ABC": { "group": "General Hardware", "revenue": 16396.02, "margin_pct": 35.36, "qty": 766.22, "avg_rate": 376.74, "txns": 30, "buyers": 4, "bulk_score": 25.54, "verdict": "Star", "monthly_rev": [871.07, 527.07, 1089.79, 659.9, 1073.48, 1070.88, 888.39, 965.73, 1167.63, 1082.9, 717.37, 995.89, 871.08, 725.66, 563.39, 584.93, 1061.25, 747.73, 730.56], "parties": [{ "name": "Sterling Engineering Co.", "revenue": 4135.12, "qty": 88.11, "txns": 7 }, { "name": "Global Hardware Works", "revenue": 3983.27, "qty": 164.35, "txns": 7 }, { "name": "Crest Industrial", "revenue": 3492.25, "qty": 196.25, "txns": 8 }, { "name": "Progressive Enterprise", "revenue": 3460.12, "qty": 103.89, "txns": 1 }, { "name": "Prime Suppliers Ltd", "revenue": 2355.59, "qty": 50.59, "txns": 5 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 1662.51, "qty": 200.61, "txns": 7 }, { "name": "Narmada Chemtech", "revenue": 1338.54, "qty": 137.38, "txns": 8 }, { "name": "Apex Industrial Solutions", "revenue": 1161.69, "qty": 197.0, "txns": 4 }] }, "Cutting Blade 4\" Yuri": { "group": "Contactors & Starters", "revenue": 58649.99, "margin_pct": 24.34, "qty": 245.82, "avg_rate": 318.4, "txns": 10, "buyers": 3, "bulk_score": 24.58, "verdict": "Weak", "monthly_rev": [4224.09, 4001.28, 2849.3, 3934.37, 4227.02, 3707.12, 3876.0, 3981.02, 2765.46, 2310.39, 2607.65, 1897.42, 2888.55, 1902.88, 3262.44, 3633.16, 3578.1, 2720.79, 3048.59], "parties": [{ "name": "Narmada Chemtech", "revenue": 17048.2, "qty": 44.06, "txns": 1 }, { "name": "Prime Suppliers Ltd", "revenue": 12261.81, "qty": 10.01, "txns": 3 }, { "name": "Silver Electricals", "revenue": 10947.88, "qty": 61.84, "txns": 2 }, { "name": "Gidsha Pharmaceuticals", "revenue": 10655.97, "qty": 54.14, "txns": 1 }, { "name": "Summit Tech Group", "revenue": 6686.31, "qty": 47.75, "txns": 2 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 6265.8, "qty": 37.32, "txns": 3 }, { "name": "Omega Trading Co", "revenue": 1769.31, "qty": 31.0, "txns": 3 }] }, "Wire Mesh D-Stoner 12-mesh": { "group": "Induction Motors", "revenue": 36401.3, "margin_pct": 22.16, "qty": 1550.45, "avg_rate": 535.27, "txns": 46, "buyers": 6, "bulk_score": 33.71, "verdict": "Healthy", "monthly_rev": [2078.66, 2530.32, 1600.48, 2243.99, 2658.75, 1651.38, 2508.78, 1811.56, 2298.98, 2089.03, 2559.63, 1373.57, 2346.87, 1482.06, 2309.49, 2370.34, 1621.07, 1378.87, 1677.34], "parties": [{ "name": "Zenith Equipment", "revenue": 8804.2, "qty": 150.64, "txns": 11 }, { "name": "Prime Suppliers Ltd", "revenue": 4697.72, "qty": 307.39, "txns": 7 }, { "name": "Atlas Trade Corp", "revenue": 3058.14, "qty": 386.65, "txns": 6 }] }, "Star Coupling 110": { "group": "Induction Motors", "revenue": 70742.59, "margin_pct": 38.99, "qty": 863.99, "avg_rate": 376.27, "txns": 18, "buyers": 12, "bulk_score": 48.0, "verdict": "Healthy", "monthly_rev": [3899.18, 5002.94, 3828.29, 4778.16, 4725.32, 3375.8, 4131.62, 3073.03, 3610.31, 4680.43, 5093.87, 4282.74, 2641.16, 4495.47, 4899.96, 3274.94, 4081.69, 4528.65, 3020.62], "parties": [{ "name": "Apex Industrial Solutions", "revenue": 16368.83, "qty": 194.95, "txns": 2 }, { "name": "Sterling Engineering Co.", "revenue": 15361.2, "qty": 148.84, "txns": 5 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 13969.4, "qty": 238.99, "txns": 1 }, { "name": "Crest Industrial", "revenue": 13676.54, "qty": 228.94, "txns": 2 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 10154.21, "qty": 87.02, "txns": 6 }, { "name": "Narmada Chemtech", "revenue": 8413.67, "qty": 220.52, "txns": 2 }, { "name": "Silver Electricals", "revenue": 2994.08, "qty": 53.45, "txns": 4 }] }, "Elevator Bucket Bolt 8*32": { "group": "Fire Safety Systems", "revenue": 80727.83, "margin_pct": 34.54, "qty": 1328.3, "avg_rate": 710.59, "txns": 17, "buyers": 20, "bulk_score": 78.14, "verdict": "Risky", "monthly_rev": [3534.39, 5821.24, 5804.42, 3391.89, 4477.67, 2712.87, 4154.49, 2552.46, 5392.73, 4127.6, 3841.83, 5657.86, 2583.57, 2670.86, 5585.02, 4738.74, 3893.83, 5596.15, 4470.24], "parties": [{ "name": "Summit Tech Group", "revenue": 28859.49, "qty": 371.88, "txns": 1 }, { "name": "Sunsafe Infra Services", "revenue": 26730.0, "qty": 374.67, "txns": 4 }, { "name": "Sterling Engineering Co.", "revenue": 18667.16, "qty": 282.15, "txns": 3 }] }, "Angle Grinder 4\" Bosch": { "group": "Fire Safety Systems", "revenue": 56996.92, "margin_pct": 9.15, "qty": 992.17, "avg_rate": 364.67, "txns": 40, "buyers": 4, "bulk_score": 24.8, "verdict": "Weak", "monthly_rev": [2287.75, 1890.54, 1875.09, 3804.64, 1955.01, 3093.78, 3119.99, 2130.47, 3192.3, 2269.09, 3664.38, 2042.02, 1800.3, 2843.13, 1920.25, 3213.23, 1953.17, 3479.63, 2673.78], "parties": [{ "name": "Bhavya Food Products Pvt Ltd", "revenue": 21785.41, "qty": 66.2, "txns": 3 }, { "name": "Apex Industrial Solutions", "revenue": 14725.28, "qty": 116.3, "txns": 10 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 11820.72, "qty": 87.7, "txns": 3 }, { "name": "Atlas Trade Corp", "revenue": 11000.82, "qty": 219.62, "txns": 1 }, { "name": "Narmada Chemtech", "revenue": 9031.64, "qty": 100.14, "txns": 7 }, { "name": "Zenith Equipment", "revenue": 5359.41, "qty": 131.17, "txns": 11 }] }, "Portable Bag Closer Machine": { "group": "Induction Motors", "revenue": 18082.59, "margin_pct": 28.47, "qty": 611.87, "avg_rate": 986.83, "txns": 27, "buyers": 16, "bulk_score": 22.66, "verdict": "Average", "monthly_rev": [945.93, 1145.93, 1214.94, 703.02, 1000.18, 831.93, 1156.43, 1057.32, 1019.17, 1050.14, 806.04, 828.65, 660.37, 1017.53, 683.71, 953.09, 956.83, 1020.53, 834.58], "parties": [{ "name": "Sunsafe Infra Services", "revenue": 4110.17, "qty": 139.43, "txns": 9 }, { "name": "Gidsha Pharmaceuticals", "revenue": 2464.39, "qty": 138.33, "txns": 4 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 1117.94, "qty": 111.94, "txns": 2 }] }, "Contactor LC1D25 Schneider": { "group": "Induction Motors", "revenue": 93387.5, "margin_pct": 20.38, "qty": 1591.41, "avg_rate": 35.32, "txns": 48, "buyers": 12, "bulk_score": 33.15, "verdict": "Star", "monthly_rev": [3832.73, 3642.77, 3527.95, 3912.21, 3095.16, 2959.42, 6606.27, 3152.81, 4539.65, 3390.47, 3644.8, 4431.97, 6556.96, 4665.38, 5898.63, 5527.62, 3739.58, 3900.54, 4726.11], "parties": [{ "name": "Summit Tech Group", "revenue": 25046.25, "qty": 375.27, "txns": 2 }, { "name": "Sunsafe Infra Services", "revenue": 21685.03, "qty": 449.36, "txns": 8 }, { "name": "Apex Industrial Solutions", "revenue": 19108.66, "qty": 12.21, "txns": 14 }, { "name": "Atlas Trade Corp", "revenue": 14641.98, "qty": 211.16, "txns": 6 }, { "name": "Silver Electricals", "revenue": 13595.39, "qty": 337.42, "txns": 3 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 8530.68, "qty": 213.09, "txns": 1 }, { "name": "Prime Suppliers Ltd", "revenue": 2497.44, "qty": 424.84, "txns": 4 }] }, "Hex Nut 10mm 8.8": { "group": "Induction Motors", "revenue": 38250.03, "margin_pct": 12.0, "qty": 1544.24, "avg_rate": 68.03, "txns": 26, "buyers": 17, "bulk_score": 59.39, "verdict": "Healthy", "monthly_rev": [1627.93, 2512.68, 1688.38, 2156.04, 1262.98, 2474.62, 1324.11, 1951.73, 1269.18, 2392.4, 2214.9, 1302.02, 1359.92, 1318.44, 2218.61, 2388.04, 2082.19, 1473.5, 1369.44], "parties": [{ "name": "Atlas Trade Corp", "revenue": 14796.26, "qty": 172.44, "txns": 3 }, { "name": "Progressive Enterprise", "revenue": 13699.06, "qty": 399.82, "txns": 3 }, { "name": "Prime Suppliers Ltd", "revenue": 5911.1, "qty": 411.68, "txns": 3 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 4853.71, "qty": 435.29, "txns": 1 }] }, "Copper Wire 2.5 sqmm FRLS": { "group": "Fire Safety Systems", "revenue": 24422.97, "margin_pct": 22.8, "qty": 1456.73, "avg_rate": 618.25, "txns": 46, "buyers": 15, "bulk_score": 31.67, "verdict": "Star", "monthly_rev": [1094.78, 1509.07, 1657.55, 1398.86, 1331.18, 1222.88, 1078.32, 1394.51, 985.85, 793.86, 1675.63, 783.93, 1508.12, 1061.26, 1530.36, 1089.19, 1566.62, 1768.58, 1587.54], "parties": [{ "name": "Haarish Equipment Pvt Ltd", "revenue": 8699.44, "qty": 172.74, "txns": 6 }, { "name": "Summit Tech Group", "revenue": 7380.33, "qty": 380.16, "txns": 2 }, { "name": "Crest Industrial", "revenue": 2549.86, "qty": 161.41, "txns": 10 }, { "name": "Pioneer Manufacturing", "revenue": 2034.48, "qty": 407.8, "txns": 11 }, { "name": "Bhavya Food Products Pvt Ltd", "revenue": 1298.6, "qty": 241.46, "txns": 8 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 1054.98, "qty": 341.61, "txns": 3 }] }, "25mm Pipe Saddle Clamp": { "group": "Induction Motors", "revenue": 84284.39, "margin_pct": 32.26, "qty": 214.2, "avg_rate": 70.04, "txns": 35, "buyers": 19, "bulk_score": 6.12, "verdict": "Risky", "monthly_rev": [4952.2, 5048.76, 2834.59, 3642.64, 3384.25, 5401.95, 3132.18, 2866.25, 3690.8, 5051.96, 4176.72, 5061.37, 3475.27, 5625.64, 5779.82, 4097.71, 2940.47, 3970.34, 3168.79], "parties": [{ "name": "Crest Industrial", "revenue": 32405.59, "qty": 30.43, "txns": 7 }, { "name": "Prime Suppliers Ltd", "revenue": 29595.93, "qty": 17.26, "txns": 5 }, { "name": "Narmada Chemtech", "revenue": 20969.92, "qty": 34.86, "txns": 4 }, { "name": "Pioneer Manufacturing", "revenue": 18115.81, "qty": 21.45, "txns": 3 }, { "name": "Sterling Engineering Co.", "revenue": 16005.61, "qty": 62.54, "txns": 2 }, { "name": "Silver Electricals", "revenue": 15048.87, "qty": 16.37, "txns": 7 }, { "name": "Gidsha Pharmaceuticals", "revenue": 11920.07, "qty": 54.38, "txns": 4 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 3334.34, "qty": 48.84, "txns": 9 }] }, "Self Drilling Screw 10x25": { "group": "Induction Motors", "revenue": 39900.16, "margin_pct": 29.86, "qty": 294.37, "avg_rate": 424.41, "txns": 41, "buyers": 7, "bulk_score": 7.18, "verdict": "Average", "monthly_rev": [1520.92, 2365.42, 1862.26, 1866.16, 1934.65, 2443.35, 1379.72, 2726.09, 2594.3, 2449.32, 2876.06, 2075.64, 2437.03, 2920.71, 1901.02, 1756.14, 1673.68, 1789.31, 1359.16], "parties": [{ "name": "Bhavya Food Products Pvt Ltd", "revenue": 14835.74, "qty": 42.36, "txns": 8 }, { "name": "Prime Suppliers Ltd", "revenue": 14799.49, "qty": 62.32, "txns": 11 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 13024.89, "qty": 62.77, "txns": 5 }, { "name": "Silver Electricals", "revenue": 10008.44, "qty": 83.39, "txns": 5 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 6049.49, "qty": 44.6, "txns": 6 }, { "name": "Progressive Enterprise", "revenue": 5792.89, "qty": 24.65, "txns": 12 }, { "name": "Zenith Equipment", "revenue": 2276.7, "qty": 69.99, "txns": 10 }, { "name": "Atlas Trade Corp", "revenue": 1824.05, "qty": 13.74, "txns": 13 }] }, "PVC Conveyor Belt 3-Ply": { "group": "Fire Safety Systems", "revenue": 87046.47, "margin_pct": 31.43, "qty": 1779.67, "avg_rate": 171.6, "txns": 29, "buyers": 15, "bulk_score": 61.37, "verdict": "Weak", "monthly_rev": [4514.75, 3950.71, 4040.2, 6031.76, 5762.9, 3128.11, 3005.1, 5785.35, 4523.57, 5186.49, 4981.95, 5739.66, 3716.06, 2759.7, 5933.98, 5855.89, 5974.5, 3571.99, 2831.43], "parties": [{ "name": "Haarish Equipment Pvt Ltd", "revenue": 25049.68, "qty": 278.06, "txns": 4 }, { "name": "Pioneer Manufacturing", "revenue": 19592.4, "qty": 428.79, "txns": 8 }, { "name": "Gidsha Pharmaceuticals", "revenue": 13213.52, "qty": 407.92, "txns": 2 }, { "name": "Silver Electricals", "revenue": 11475.31, "qty": 472.24, "txns": 4 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 6315.53, "qty": 310.12, "txns": 4 }] }, "Cable 4C x 4.0 sqmm Flexible": { "group": "Fire Safety Systems", "revenue": 76726.21, "margin_pct": 35.02, "qty": 723.84, "avg_rate": 136.18, "txns": 8, "buyers": 9, "bulk_score": 90.48, "verdict": "Weak", "monthly_rev": [2946.9, 4230.83, 3753.88, 3059.36, 3578.08, 2565.01, 4720.61, 3914.02, 4380.93, 2901.45, 4276.37, 2937.8, 2727.9, 3938.16, 3352.59, 4180.34, 5387.89, 5625.02, 3634.16], "parties": [{ "name": "Pioneer Manufacturing", "revenue": 28991.32, "qty": 76.07, "txns": 1 }, { "name": "Bhavya Food Products Pvt Ltd", "revenue": 28670.83, "qty": 192.1, "txns": 2 }, { "name": "Sunsafe Infra Services", "revenue": 21335.99, "qty": 85.65, "txns": 2 }, { "name": "Crest Industrial", "revenue": 13563.35, "qty": 161.57, "txns": 2 }, { "name": "Progressive Enterprise", "revenue": 7956.35, "qty": 176.37, "txns": 1 }] }, "Gear Oil 320 20 Ltr": { "group": "General Hardware", "revenue": 39683.07, "margin_pct": 29.35, "qty": 872.19, "avg_rate": 773.81, "txns": 48, "buyers": 15, "bulk_score": 18.17, "verdict": "Average", "monthly_rev": [1997.96, 2921.94, 2468.62, 1970.84, 1636.78, 1297.17, 1499.09, 1551.97, 1339.24, 2690.71, 1863.5, 2881.21, 1463.2, 2725.4, 1651.41, 1569.1, 2356.8, 1985.32, 2500.23], "parties": [{ "name": "Progressive Enterprise", "revenue": 13913.65, "qty": 194.77, "txns": 7 }, { "name": "Gidsha Pharmaceuticals", "revenue": 7689.27, "qty": 61.26, "txns": 3 }, { "name": "Summit Tech Group", "revenue": 1506.1, "qty": 71.32, "txns": 14 }] }, "Polycab 1C x 10 sqmm Flexible": { "group": "Induction Motors", "revenue": 51867.88, "margin_pct": 24.66, "qty": 325.0, "avg_rate": 140.11, "txns": 39, "buyers": 9, "bulk_score": 8.33, "verdict": "Weak", "monthly_rev": [1759.75, 3430.35, 2443.83, 2972.01, 3132.64, 3322.87, 2270.55, 3783.5, 2170.79, 3211.62, 2257.39, 3455.04, 3354.23, 2918.36, 3230.64, 3522.22, 2585.59, 3775.12, 2695.27], "parties": [{ "name": "Gidsha Pharmaceuticals", "revenue": 18239.08, "qty": 41.99, "txns": 12 }, { "name": "Global Hardware Works", "revenue": 6393.11, "qty": 87.32, "txns": 9 }, { "name": "Atlas Trade Corp", "revenue": 1886.35, "qty": 31.24, "txns": 6 }] }, "Flap Disc 100x16mm": { "group": "Induction Motors", "revenue": 82657.83, "margin_pct": 29.44, "qty": 843.43, "avg_rate": 894.91, "txns": 40, "buyers": 9, "bulk_score": 21.09, "verdict": "Risky", "monthly_rev": [2724.06, 3890.41, 4788.9, 4670.03, 2707.38, 5629.56, 3848.35, 3232.36, 4391.02, 5213.87, 5122.58, 5835.99, 5979.73, 6037.72, 5534.56, 3514.28, 2664.83, 3992.71, 5722.06], "parties": [{ "name": "Nova Fabricators", "revenue": 22820.63, "qty": 209.26, "txns": 12 }, { "name": "Prime Suppliers Ltd", "revenue": 14785.93, "qty": 220.27, "txns": 9 }, { "name": "Sunsafe Infra Services", "revenue": 4296.79, "qty": 49.37, "txns": 10 }] }, "SS Trolley Heavy Duty": { "group": "Fire Safety Systems", "revenue": 93002.27, "margin_pct": 38.06, "qty": 630.72, "avg_rate": 322.71, "txns": 23, "buyers": 7, "bulk_score": 27.42, "verdict": "Healthy", "monthly_rev": [4708.21, 3049.2, 4502.56, 6331.63, 5796.34, 3056.04, 5874.7, 4839.51, 5514.62, 6355.05, 6432.43, 6740.92, 4492.46, 5550.11, 4585.23, 3293.49, 3314.33, 4540.06, 4494.92], "parties": [{ "name": "Sunsafe Infra Services", "revenue": 34539.25, "qty": 163.04, "txns": 3 }, { "name": "Atlas Trade Corp", "revenue": 23419.36, "qty": 52.48, "txns": 1 }, { "name": "Crest Industrial", "revenue": 19859.92, "qty": 139.36, "txns": 7 }, { "name": "Pioneer Manufacturing", "revenue": 9136.19, "qty": 127.4, "txns": 5 }, { "name": "Summit Tech Group", "revenue": 5086.9, "qty": 130.38, "txns": 3 }] }, "Cable Gland PG-21 Brass": { "group": "Induction Motors", "revenue": 35491.42, "margin_pct": 28.38, "qty": 1800.73, "avg_rate": 391.77, "txns": 23, "buyers": 10, "bulk_score": 78.29, "verdict": "Star", "monthly_rev": [1136.17, 1215.48, 2080.63, 2283.5, 2345.56, 1948.34, 1450.94, 2469.31, 1473.3, 1148.85, 2502.62, 1659.03, 1513.75, 2201.98, 2136.39, 1413.55, 2265.17, 1761.41, 1434.28], "parties": [{ "name": "Nova Fabricators", "revenue": 14094.37, "qty": 144.36, "txns": 6 }, { "name": "Gidsha Pharmaceuticals", "revenue": 11936.17, "qty": 462.43, "txns": 5 }, { "name": "Prime Suppliers Ltd", "revenue": 10700.22, "qty": 195.23, "txns": 2 }, { "name": "Sunsafe Infra Services", "revenue": 9050.09, "qty": 76.78, "txns": 4 }, { "name": "Zenith Equipment", "revenue": 5768.07, "qty": 54.27, "txns": 6 }, { "name": "Crest Industrial", "revenue": 3510.41, "qty": 244.54, "txns": 7 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 2411.49, "qty": 162.67, "txns": 5 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 2097.31, "qty": 478.15, "txns": 3 }] }, "Welding Rod 3.15mm": { "group": "Fire Safety Systems", "revenue": 19242.52, "margin_pct": 23.94, "qty": 1818.23, "avg_rate": 661.27, "txns": 13, "buyers": 20, "bulk_score": 139.86, "verdict": "Risky", "monthly_rev": [1089.43, 935.35, 1395.3, 699.97, 1287.75, 1248.08, 1254.98, 948.98, 1350.23, 1275.18, 1022.95, 1247.54, 799.45, 1139.87, 637.44, 810.0, 723.96, 1014.61, 1259.9], "parties": [{ "name": "Nova Fabricators", "revenue": 7282.21, "qty": 433.28, "txns": 4 }, { "name": "Summit Tech Group", "revenue": 5633.86, "qty": 454.95, "txns": 2 }, { "name": "Zenith Equipment", "revenue": 5506.08, "qty": 247.19, "txns": 2 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 4670.94, "qty": 492.88, "txns": 3 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 3555.19, "qty": 387.47, "txns": 1 }, { "name": "Apex Industrial Solutions", "revenue": 3394.32, "qty": 393.06, "txns": 2 }] }, "PU Belt 3mm": { "group": "Fire Safety Systems", "revenue": 49603.02, "margin_pct": 30.15, "qty": 177.7, "avg_rate": 78.92, "txns": 43, "buyers": 2, "bulk_score": 4.13, "verdict": "Star", "monthly_rev": [3254.25, 3205.83, 2770.69, 3264.84, 1855.49, 2594.17, 2529.26, 1618.43, 2489.56, 3340.14, 2819.35, 2942.89, 2369.09, 3568.28, 1746.39, 1653.12, 2726.46, 1993.24, 2670.5], "parties": [{ "name": "Haarish Equipment Pvt Ltd", "revenue": 15852.2, "qty": 22.8, "txns": 11 }, { "name": "Gidsha Pharmaceuticals", "revenue": 9973.72, "qty": 13.55, "txns": 10 }, { "name": "Narmada Chemtech", "revenue": 9319.62, "qty": 12.37, "txns": 9 }, { "name": "Nova Fabricators", "revenue": 8555.27, "qty": 40.58, "txns": 5 }, { "name": "Atlas Trade Corp", "revenue": 8446.9, "qty": 23.19, "txns": 3 }, { "name": "Prime Suppliers Ltd", "revenue": 6306.4, "qty": 17.36, "txns": 12 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 6266.51, "qty": 11.67, "txns": 7 }, { "name": "Zenith Equipment", "revenue": 3012.08, "qty": 46.74, "txns": 11 }] }, "GI Pipe 1\" B-Class": { "group": "Induction Motors", "revenue": 96443.76, "margin_pct": 36.75, "qty": 446.35, "avg_rate": 871.29, "txns": 39, "buyers": 16, "bulk_score": 11.44, "verdict": "Star", "monthly_rev": [4206.57, 5495.42, 3057.76, 5642.73, 3486.38, 5772.22, 3251.53, 6311.87, 4964.48, 5499.42, 4332.84, 3730.67, 3074.33, 5021.64, 4611.96, 4603.42, 4888.19, 4108.54, 3256.12], "parties": [{ "name": "Sunsafe Infra Services", "revenue": 12784.45, "qty": 49.75, "txns": 2 }, { "name": "Nova Fabricators", "revenue": 3547.86, "qty": 68.75, "txns": 4 }, { "name": "Omega Trading Co", "revenue": 3477.34, "qty": 80.86, "txns": 7 }] }, "MCCB 100A 3P Schneider": { "group": "General Hardware", "revenue": 92061.4, "margin_pct": 32.67, "qty": 274.25, "avg_rate": 598.09, "txns": 12, "buyers": 3, "bulk_score": 22.85, "verdict": "Risky", "monthly_rev": [5100.64, 3768.39, 5640.46, 5446.64, 6712.97, 4053.4, 2967.65, 3475.03, 6501.37, 5165.91, 5849.73, 5970.9, 4135.01, 4564.93, 4220.24, 5807.18, 5343.57, 4080.88, 6456.84], "parties": [{ "name": "Global Hardware Works", "revenue": 30852.89, "qty": 19.03, "txns": 1 }, { "name": "Apex Industrial Solutions", "revenue": 29712.9, "qty": 81.83, "txns": 2 }, { "name": "Silver Electricals", "revenue": 27235.36, "qty": 63.18, "txns": 4 }, { "name": "Bhavya Food Products Pvt Ltd", "revenue": 19194.11, "qty": 72.17, "txns": 3 }, { "name": "Sunsafe Infra Services", "revenue": 11088.06, "qty": 44.88, "txns": 2 }, { "name": "Nova Fabricators", "revenue": 8713.25, "qty": 44.41, "txns": 1 }, { "name": "Crest Industrial", "revenue": 5309.08, "qty": 11.9, "txns": 2 }, { "name": "Progressive Enterprise", "revenue": 1165.36, "qty": 29.35, "txns": 2 }] }, "Hydraulic Jack 10T": { "group": "Fire Safety Systems", "revenue": 68759.46, "margin_pct": 39.18, "qty": 1716.92, "avg_rate": 803.4, "txns": 34, "buyers": 14, "bulk_score": 50.5, "verdict": "Average", "monthly_rev": [3092.19, 3550.56, 3580.67, 4805.21, 4442.39, 4142.55, 3772.12, 4086.78, 4682.16, 3847.06, 2769.35, 4279.9, 4096.51, 4235.06, 3318.58, 3406.58, 4644.98, 2360.64, 4297.82], "parties": [{ "name": "Bhavya Food Products Pvt Ltd", "revenue": 23656.15, "qty": 399.35, "txns": 1 }, { "name": "Crest Industrial", "revenue": 17048.0, "qty": 397.02, "txns": 7 }, { "name": "Silver Electricals", "revenue": 15791.94, "qty": 120.29, "txns": 1 }, { "name": "Progressive Enterprise", "revenue": 11710.01, "qty": 315.21, "txns": 4 }, { "name": "Sunsafe Infra Services", "revenue": 7670.31, "qty": 408.86, "txns": 7 }, { "name": "Nova Fabricators", "revenue": 1120.75, "qty": 454.11, "txns": 1 }] }, "Air Compressor 50L": { "group": "Fire Safety Systems", "revenue": 62835.69, "margin_pct": 32.63, "qty": 820.01, "avg_rate": 955.94, "txns": 49, "buyers": 7, "bulk_score": 16.73, "verdict": "Average", "monthly_rev": [4037.17, 4092.35, 2442.63, 3770.71, 3331.08, 2848.61, 3795.82, 3993.34, 2994.7, 3336.24, 2338.85, 2536.65, 2638.57, 2206.37, 2225.49, 2950.18, 2585.24, 2001.36, 2774.4], "parties": [{ "name": "Prime Suppliers Ltd", "revenue": 24494.23, "qty": 243.5, "txns": 10 }, { "name": "Summit Tech Group", "revenue": 22447.87, "qty": 146.99, "txns": 14 }, { "name": "Progressive Enterprise", "revenue": 20238.94, "qty": 49.71, "txns": 8 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 19180.66, "qty": 92.95, "txns": 16 }, { "name": "Apex Industrial Solutions", "revenue": 11608.21, "qty": 81.63, "txns": 11 }, { "name": "Pioneer Manufacturing", "revenue": 6378.99, "qty": 121.1, "txns": 14 }, { "name": "Global Hardware Works", "revenue": 5948.98, "qty": 89.7, "txns": 6 }] }, "Earthing Chemical Compound": { "group": "General Hardware", "revenue": 29958.84, "margin_pct": 16.38, "qty": 703.0, "avg_rate": 436.24, "txns": 18, "buyers": 3, "bulk_score": 39.06, "verdict": "Weak", "monthly_rev": [1432.9, 1332.99, 1692.11, 1660.06, 1596.98, 2042.94, 1850.42, 1727.3, 1599.88, 1228.25, 2096.4, 1782.9, 1902.01, 1392.92, 1358.75, 1966.76, 1645.71, 1600.32, 2166.49], "parties": [{ "name": "Narmada Chemtech", "revenue": 10056.55, "qty": 164.69, "txns": 2 }, { "name": "Apex Industrial Solutions", "revenue": 9356.54, "qty": 58.96, "txns": 6 }, { "name": "Pioneer Manufacturing", "revenue": 3212.43, "qty": 121.55, "txns": 2 }] }, "V Belts C 094 (Fenner)": { "group": "Fire Safety Systems", "revenue": 42670.16, "margin_pct": 8.25, "qty": 1597.07, "avg_rate": 335.09, "txns": 16, "buyers": 20, "bulk_score": 99.82, "verdict": "Average", "monthly_rev": [2462.37, 3039.97, 2495.35, 1688.1, 1602.41, 2049.84, 2543.07, 2638.4, 1628.2, 2236.33, 2892.13, 2299.05, 3012.96, 1718.59, 1706.81, 1968.07, 1649.79, 2994.39, 1457.32], "parties": [{ "name": "Apex Industrial Solutions", "revenue": 16667.0, "qty": 44.58, "txns": 1 }, { "name": "Sterling Engineering Co.", "revenue": 10721.72, "qty": 301.43, "txns": 3 }, { "name": "Narmada Chemtech", "revenue": 6973.03, "qty": 469.62, "txns": 3 }] }, "Heavy Duty Bearing 6205ZZ": { "group": "Induction Motors", "revenue": 67258.97, "margin_pct": 43.06, "qty": 1723.07, "avg_rate": 998.14, "txns": 19, "buyers": 13, "bulk_score": 90.69, "verdict": "Healthy", "monthly_rev": [3109.75, 2369.98, 2344.37, 2289.93, 3992.94, 4376.14, 2154.2, 3948.09, 4219.77, 3194.03, 2545.21, 3740.15, 3565.09, 3138.55, 2284.82, 3567.71, 2820.9, 3208.9, 3214.75], "parties": [{ "name": "Atlas Trade Corp", "revenue": 15619.53, "qty": 317.16, "txns": 3 }, { "name": "Crest Industrial", "revenue": 13871.05, "qty": 487.8, "txns": 5 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 9823.59, "qty": 416.21, "txns": 2 }] }, "SS Sheet 8x4x0.6mm": { "group": "Fire Safety Systems", "revenue": 82374.92, "margin_pct": 43.9, "qty": 1273.03, "avg_rate": 312.9, "txns": 33, "buyers": 12, "bulk_score": 38.58, "verdict": "Average", "monthly_rev": [4913.52, 3712.44, 3373.77, 5074.9, 3605.2, 5743.37, 3023.62, 2801.32, 5420.94, 5381.76, 5152.64, 4053.75, 2745.38, 5947.26, 4599.97, 3738.44, 3019.65, 5943.66, 5646.54], "parties": [{ "name": "Narmada Chemtech", "revenue": 31409.61, "qty": 85.33, "txns": 11 }, { "name": "Crest Industrial", "revenue": 28490.36, "qty": 181.96, "txns": 7 }, { "name": "Global Hardware Works", "revenue": 27488.08, "qty": 216.18, "txns": 9 }, { "name": "Sunsafe Infra Services", "revenue": 26326.23, "qty": 127.16, "txns": 4 }, { "name": "Gidsha Pharmaceuticals", "revenue": 21939.78, "qty": 207.37, "txns": 4 }, { "name": "Pioneer Manufacturing", "revenue": 16826.68, "qty": 130.2, "txns": 4 }, { "name": "Progressive Enterprise", "revenue": 12509.1, "qty": 10.82, "txns": 9 }, { "name": "Bhavya Food Products Pvt Ltd", "revenue": 1128.57, "qty": 80.62, "txns": 10 }] }, "MCB 32A TP Schneider": { "group": "Fire Safety Systems", "revenue": 41484.41, "margin_pct": 10.02, "qty": 1455.23, "avg_rate": 864.63, "txns": 28, "buyers": 16, "bulk_score": 51.97, "verdict": "Average", "monthly_rev": [2122.98, 2961.88, 1756.11, 1854.55, 2335.96, 2249.73, 2554.59, 1310.15, 2104.34, 1484.18, 1888.93, 2118.32, 2062.39, 1618.95, 2876.23, 1732.01, 1671.69, 2129.15, 2200.51], "parties": [{ "name": "Progressive Enterprise", "revenue": 15381.47, "qty": 109.67, "txns": 6 }, { "name": "Atlas Trade Corp", "revenue": 13178.35, "qty": 412.87, "txns": 7 }, { "name": "Zenith Equipment", "revenue": 10784.33, "qty": 10.22, "txns": 2 }, { "name": "Gidsha Pharmaceuticals", "revenue": 2728.25, "qty": 121.35, "txns": 8 }] }, "Taper Lock Pulley 200x3C": { "group": "Fire Safety Systems", "revenue": 80494.57, "margin_pct": 23.63, "qty": 1657.57, "avg_rate": 176.26, "txns": 36, "buyers": 19, "bulk_score": 46.04, "verdict": "Risky", "monthly_rev": [4469.8, 3286.99, 4371.88, 4070.65, 3108.19, 3281.11, 2817.94, 2944.86, 3484.31, 3961.2, 4156.38, 3192.13, 2788.42, 5065.89, 5470.51, 2561.42, 2680.83, 4218.24, 5420.21], "parties": [{ "name": "Progressive Enterprise", "revenue": 28631.25, "qty": 323.11, "txns": 8 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 25685.67, "qty": 347.99, "txns": 5 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 16283.76, "qty": 386.84, "txns": 9 }] }, "Back Filling Compound": { "group": "Induction Motors", "revenue": 22848.95, "margin_pct": 15.47, "qty": 99.46, "avg_rate": 602.69, "txns": 18, "buyers": 13, "bulk_score": 5.53, "verdict": "Star", "monthly_rev": [1375.01, 1586.01, 919.48, 1466.29, 1382.43, 1244.66, 748.84, 1126.31, 1001.34, 1649.44, 1047.26, 840.67, 1190.7, 1234.87, 1613.43, 1120.58, 1434.56, 1381.95, 1262.57], "parties": [{ "name": "Haarish Equipment Pvt Ltd", "revenue": 8002.59, "qty": 20.63, "txns": 5 }, { "name": "Gidsha Pharmaceuticals", "revenue": 6520.77, "qty": 24.35, "txns": 3 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 5573.38, "qty": 12.63, "txns": 4 }, { "name": "Atlas Trade Corp", "revenue": 3112.78, "qty": 22.45, "txns": 6 }, { "name": "Bhavya Food Products Pvt Ltd", "revenue": 1630.82, "qty": 13.83, "txns": 1 }, { "name": "Narmada Chemtech", "revenue": 1296.97, "qty": 15.07, "txns": 2 }] }, "Electric Motor 5HP 1440 RPM": { "group": "Induction Motors", "revenue": 34682.29, "margin_pct": 21.21, "qty": 1786.59, "avg_rate": 258.7, "txns": 31, "buyers": 12, "bulk_score": 57.63, "verdict": "Risky", "monthly_rev": [1245.35, 1624.78, 2456.7, 1247.53, 2407.19, 2401.09, 1807.7, 1606.07, 2033.56, 2412.78, 1848.12, 2064.38, 2161.64, 1986.33, 1428.84, 1303.28, 1789.89, 1723.16, 2146.4], "parties": [{ "name": "Apex Industrial Solutions", "revenue": 12387.89, "qty": 237.6, "txns": 5 }, { "name": "Zenith Equipment", "revenue": 12195.47, "qty": 319.48, "txns": 4 }, { "name": "Silver Electricals", "revenue": 10338.17, "qty": 259.97, "txns": 2 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 9803.85, "qty": 241.71, "txns": 5 }, { "name": "Summit Tech Group", "revenue": 7533.88, "qty": 164.2, "txns": 4 }, { "name": "Crest Industrial", "revenue": 6163.04, "qty": 358.6, "txns": 9 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 5786.31, "qty": 12.29, "txns": 5 }, { "name": "Prime Suppliers Ltd", "revenue": 5386.71, "qty": 531.12, "txns": 1 }] }, "Industrial Drill 13mm": { "group": "General Hardware", "revenue": 33113.57, "margin_pct": 15.81, "qty": 985.23, "avg_rate": 194.95, "txns": 18, "buyers": 7, "bulk_score": 54.73, "verdict": "Healthy", "monthly_rev": [2268.97, 1378.15, 1096.93, 1583.93, 1982.1, 2284.88, 1671.29, 1938.02, 1571.06, 2010.42, 1638.85, 1703.39, 1055.92, 2268.03, 2262.78, 1530.87, 2313.81, 2322.29, 1944.74], "parties": [{ "name": "Atlas Trade Corp", "revenue": 4530.94, "qty": 196.47, "txns": 3 }, { "name": "Summit Tech Group", "revenue": 1776.72, "qty": 174.65, "txns": 6 }, { "name": "Zenith Equipment", "revenue": 1399.53, "qty": 52.98, "txns": 3 }] }, "Lug 1.5 sqmm 4mm Copper Pin": { "group": "Fire Safety Systems", "revenue": 50024.33, "margin_pct": 17.91, "qty": 1045.91, "avg_rate": 336.72, "txns": 46, "buyers": 4, "bulk_score": 22.74, "verdict": "Average", "monthly_rev": [2368.67, 3287.88, 2599.38, 2382.44, 3111.21, 2958.12, 3356.26, 1854.57, 2987.69, 1914.33, 3673.64, 1640.25, 2001.73, 2550.11, 2950.18, 3241.02, 2256.98, 3020.19, 2093.44], "parties": [{ "name": "Prime Suppliers Ltd", "revenue": 15374.45, "qty": 233.82, "txns": 4 }, { "name": "Sterling Engineering Co.", "revenue": 10558.36, "qty": 267.7, "txns": 8 }, { "name": "Global Hardware Works", "revenue": 6098.56, "qty": 219.2, "txns": 7 }, { "name": "Nova Fabricators", "revenue": 5504.59, "qty": 89.31, "txns": 13 }, { "name": "Zenith Equipment", "revenue": 1388.6, "qty": 106.75, "txns": 14 }] }, "DOL Starter 10HP": { "group": "General Hardware", "revenue": 82640.12, "margin_pct": 17.31, "qty": 1338.7, "avg_rate": 411.81, "txns": 39, "buyers": 4, "bulk_score": 34.33, "verdict": "Healthy", "monthly_rev": [3325.62, 5028.8, 5772.87, 2896.04, 4308.84, 5755.33, 3983.49, 5213.45, 5958.86, 5526.52, 5471.26, 5463.77, 5994.74, 3193.51, 5538.15, 2974.24, 3645.75, 6043.3, 5033.35], "parties": [{ "name": "Progressive Enterprise", "revenue": 29572.2, "qty": 284.45, "txns": 6 }, { "name": "Sterling Engineering Co.", "revenue": 27789.42, "qty": 142.49, "txns": 7 }, { "name": "Zenith Equipment", "revenue": 10668.92, "qty": 349.56, "txns": 2 }, { "name": "Gidsha Pharmaceuticals", "revenue": 8992.61, "qty": 375.84, "txns": 2 }] }, "Hex Bolt 10x40mm 8.8 Grade": { "group": "General Hardware", "revenue": 12205.31, "margin_pct": 41.86, "qty": 1064.38, "avg_rate": 828.51, "txns": 50, "buyers": 7, "bulk_score": 21.29, "verdict": "Risky", "monthly_rev": [888.3, 599.34, 649.61, 511.04, 736.02, 486.37, 526.88, 528.12, 652.01, 751.67, 698.85, 607.55, 787.12, 707.11, 874.24, 778.87, 883.77, 688.73, 765.99], "parties": [{ "name": "Prime Suppliers Ltd", "revenue": 4811.21, "qty": 187.19, "txns": 4 }, { "name": "Global Hardware Works", "revenue": 4006.73, "qty": 160.81, "txns": 10 }, { "name": "Progressive Enterprise", "revenue": 3350.32, "qty": 140.19, "txns": 8 }, { "name": "Gidsha Pharmaceuticals", "revenue": 2897.56, "qty": 23.09, "txns": 4 }, { "name": "Crest Industrial", "revenue": 2731.88, "qty": 272.32, "txns": 3 }, { "name": "Sterling Engineering Co.", "revenue": 1174.3, "qty": 145.46, "txns": 5 }, { "name": "Atlas Trade Corp", "revenue": 1086.2, "qty": 318.4, "txns": 13 }] } } };
+        const M = D.months;
+        const fmt = n => { if (Math.abs(n) >= 1e7) return '₹' + (n / 1e7).toFixed(2) + 'Cr'; if (Math.abs(n) >= 1e5) return '₹' + (n / 1e5).toFixed(2) + 'L'; return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 }) };
+        const fmtN = n => n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        const pct = n => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+        const badge = (v) => { const c = v.replace(/[^a-zA-Z]/g, '').toLowerCase(); return `<span class="badge badge-${c}">${v}</span>` };
+        const colors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a78bfa', '#f472b6', '#34d399', '#fb923c', '#38bdf8'];
+        let charts = {};
+        const VERDICT_RANK = { Star: 1, Healthy: 2, Average: 3, Weak: 4, Risky: 5 };
+
+        document.getElementById('hdr-rev').textContent = fmt(D.summary.total_revenue);
+        document.getElementById('hdr-grp').textContent = D.summary.total_groups;
+        document.getElementById('hdr-items').textContent = D.summary.total_items;
+        document.getElementById('hdr-months').textContent = M.length;
+
+        // Tabs
+        document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(x => x.classList.remove('active'));
+            t.classList.add('active');
+            document.getElementById(t.dataset.tab).classList.add('active');
+        }));
+
+        // Sort helper
+        function sortTable(table, col, asc) {
+            const tb = table.querySelector('tbody');
+            const rows = [...tb.rows].filter(r => r.style.display !== 'none');
+            const hidden = [...tb.rows].filter(r => r.style.display === 'none');
+            rows.sort((a, b) => {
+                let va = a.dataset[col] || a.cells[0].textContent;
+                let vb = b.dataset[col] || b.cells[0].textContent;
+                if (col === 'verdict') { let ra = VERDICT_RANK[va] || 99, rb = VERDICT_RANK[vb] || 99; return asc ? ra - rb : rb - ra; }
+                let na = parseFloat(va), nb = parseFloat(vb);
+                if (!isNaN(na) && !isNaN(nb)) return asc ? na - nb : nb - na;
+                return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+            });
+            rows.forEach(r => tb.appendChild(r));
+            hidden.forEach(r => tb.appendChild(r));
+        }
+        document.querySelectorAll('th[data-col]').forEach(th => {
+            let asc = false;
+            th.addEventListener('click', () => { asc = !asc; sortTable(th.closest('table'), th.dataset.col, asc) });
+        });
+
+        function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key] } }
+
+        // ========= GROUP EXPLORER =========
+        const grpSel = document.getElementById('grp-sel');
+        const grpNames = Object.keys(D.groups).sort((a, b) => D.groups[b].revenue - D.groups[a].revenue);
+        grpNames.forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g; grpSel.appendChild(o) });
+
+        function renderGroup(name) {
+            const g = D.groups[name]; if (!g) return;
+            document.getElementById('grp-kpis').innerHTML = [
+                { l: 'Revenue', v: fmt(g.revenue) }, { l: 'Margin', v: fmt(g.margin), s: g.margin_pct + '%' },
+                { l: 'Quantity', v: fmtN(g.qty) }, { l: 'Transactions', v: fmtN(g.txns) },
+                { l: 'Buyers', v: g.buyers }, { l: 'Items', v: g.items_count },
+                { l: 'Top Buyer Share', v: g.top_share + '%' }, { l: 'Demand Trend', v: pct(g.trend) },
+                { l: 'Verdict', v: g.verdict }
+            ].map(k => `<div class="kpi"><div class="label">${k.l}</div><div class="value">${k.v}</div>${k.s ? '<div class="sub">' + k.s + '</div>' : ''}</div>`).join('');
+
+            // Monthly chart
+            destroyChart('grpM');
+            charts.grpM = new Chart(document.getElementById('grp-monthly'), {
+                type: 'bar', data: {
+                    labels: M, datasets: [
+                        { label: 'Revenue', data: g.monthly_rev, backgroundColor: 'rgba(99,102,241,.6)', order: 2, borderRadius: 3 },
+                        { label: 'Margin', data: g.monthly_margin, type: 'line', borderColor: '#22c55e', backgroundColor: 'transparent', pointRadius: 2, tension: .3, order: 1 }
+                    ]
+                }, options: { responsive: true, plugins: { legend: { labels: { color: '#9498b3', font: { size: 11 } } } }, scales: { x: { ticks: { color: '#9498b3', font: { size: 10 }, maxRotation: 45 }, grid: { color: '#2d3148' } }, y: { ticks: { color: '#9498b3', callback: v => fmt(v) }, grid: { color: '#2d3148' } } } }
+            });
+
+            // Top buyers
+            destroyChart('grpB');
+            const tb = g.top_buyers;
+            charts.grpB = new Chart(document.getElementById('grp-buyers'), {
+                type: 'bar', data: {
+                    labels: tb.map(b => b.name.length > 25 ? b.name.slice(0, 25) + '…' : b.name),
+                    datasets: [{ data: tb.map(b => b.revenue), backgroundColor: colors.slice(0, tb.length), borderRadius: 4 }]
+                }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9498b3', callback: v => fmt(v) }, grid: { color: '#2d3148' } }, y: { ticks: { color: '#9498b3', font: { size: 10 } }, grid: { display: false } } } }
+            });
+
+            // Top items bar
+            destroyChart('grpI');
+            const ti = g.top_items;
+            charts.grpI = new Chart(document.getElementById('grp-items-chart'), {
+                type: 'bar', data: {
+                    labels: ti.map(i => i.name.length > 25 ? i.name.slice(0, 25) + '…' : i.name),
+                    datasets: [
+                        { label: 'Revenue', data: ti.map(i => i.revenue), backgroundColor: 'rgba(99,102,241,.6)', borderRadius: 3 },
+                        { label: 'Margin', data: ti.map(i => i.margin), backgroundColor: 'rgba(34,197,94,.5)', borderRadius: 3 }
+                    ]
+                }, options: { responsive: true, plugins: { legend: { labels: { color: '#9498b3', font: { size: 11 } } } }, scales: { x: { ticks: { color: '#9498b3', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#2d3148' } }, y: { ticks: { color: '#9498b3', callback: v => fmt(v) }, grid: { color: '#2d3148' } } } }
+            });
+
+            // Pie
+            destroyChart('grpP');
+            const top5 = ti.slice(0, 5);
+            const otherRev = g.revenue - top5.reduce((s, i) => s + i.revenue, 0);
+            const pieLabels = [...top5.map(i => i.name), 'Others'];
+            const pieData = [...top5.map(i => i.revenue), otherRev];
+            charts.grpP = new Chart(document.getElementById('grp-pie'), {
+                type: 'doughnut', data: {
+                    labels: pieLabels, datasets: [{ data: pieData, backgroundColor: [...colors.slice(0, 5), '#4b5563'], borderWidth: 0 }]
+                }, options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#9498b3', font: { size: 10 }, boxWidth: 12 } } } }
+            });
+
+            // Item table
+            const tbody = document.querySelector('#grp-table tbody');
+            tbody.innerHTML = g.all_items.map(i => {
+                const row = `<tr data-name="${i.name}" data-revenue="${i.revenue}" data-margin_pct="${i.margin_pct}" data-qty="${i.qty}" data-avg_rate="${i.avg_rate}" data-txns="${i.txns}" data-buyers="${i.buyers}" data-verdict="${i.verdict}">
+<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${i.name}">${i.name}</td>
+<td>${fmt(i.revenue)}</td><td class="${i.margin_pct >= 10 ? 'num-pos' : 'num-neg'}">${i.margin_pct}%</td>
+<td>${fmtN(i.qty)}</td><td>₹${i.avg_rate.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+<td>${i.txns}</td><td>${i.buyers}</td><td>${badge(i.verdict)}</td></tr>`;
+                return row;
+            }).join('');
+        }
+        function applyGrpVerdictFilter() {
+            const v = document.getElementById('grp-verdict-filter').value;
+            const rows = document.querySelectorAll('#grp-table tbody tr');
+            rows.forEach(r => { r.style.display = (!v || r.dataset.verdict === v) ? '' : 'none'; });
+        }
+        grpSel.addEventListener('change', () => { document.getElementById('grp-verdict-filter').value = ''; renderGroup(grpSel.value); });
+        document.getElementById('grp-verdict-filter').addEventListener('change', applyGrpVerdictFilter);
+        renderGroup(grpNames[0]);
+
+        // ========= ITEM EXPLORER =========
+        const itemGrpSel = document.getElementById('item-grp-sel');
+        const itemSel = document.getElementById('item-sel');
+        const itemSearch = document.getElementById('item-search');
+        const verdictFilter = document.getElementById('item-verdict-filter');
+        const allItemNames = Object.keys(D.items).sort();
+
+        grpNames.forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = g; itemGrpSel.appendChild(o) });
+
+        function populateItemDropdown(group, search, verdict) {
+            itemSel.innerHTML = '';
+            let list = allItemNames;
+            if (group) list = list.filter(n => D.items[n].group === group);
+            if (search) { const s = search.toLowerCase(); list = list.filter(n => n.toLowerCase().includes(s)) }
+            if (verdict) list = list.filter(n => D.items[n].verdict === verdict);
+            list.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; itemSel.appendChild(o) });
+            if (list.length) renderItem(list[0]);
+        }
+
+        function renderItem(name) {
+            const it = D.items[name]; if (!it) return;
+            document.getElementById('item-kpis').innerHTML = [
+                { l: 'Revenue', v: fmt(it.revenue) }, { l: 'Margin %', v: it.margin_pct + '%' },
+                { l: 'Quantity', v: fmtN(it.qty) }, { l: 'Avg Rate', v: '₹' + it.avg_rate.toLocaleString('en-IN', { maximumFractionDigits: 2 }) },
+                { l: 'Transactions', v: it.txns }, { l: 'Buyers', v: it.buyers },
+                { l: 'Bulk Score', v: it.bulk_score.toFixed(1) + ' qty/txn' }, { l: 'Verdict', v: it.verdict },
+                { l: 'Group', v: it.group }
+            ].map(k => `<div class="kpi"><div class="label">${k.l}</div><div class="value">${k.v}</div></div>`).join('');
+
+            destroyChart('itM');
+            charts.itM = new Chart(document.getElementById('item-monthly'), {
+                type: 'bar', data: {
+                    labels: M, datasets: [{ label: 'Revenue', data: it.monthly_rev, backgroundColor: 'rgba(99,102,241,.7)', borderRadius: 3 }]
+                }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9498b3', font: { size: 10 }, maxRotation: 45 }, grid: { color: '#2d3148' } }, y: { ticks: { color: '#9498b3', callback: v => fmt(v) }, grid: { color: '#2d3148' } } } }
+            });
+
+            // Party breakdown chart
+            destroyChart('itP');
+            const top8 = it.parties.slice(0, 8);
+            charts.itP = new Chart(document.getElementById('item-parties-chart'), {
+                type: 'bar', data: {
+                    labels: top8.map(p => p.name.length > 25 ? p.name.slice(0, 25) + '…' : p.name),
+                    datasets: [{ data: top8.map(p => p.revenue), backgroundColor: colors.slice(0, 8), borderRadius: 4 }]
+                }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9498b3', callback: v => fmt(v) }, grid: { color: '#2d3148' } }, y: { ticks: { color: '#9498b3', font: { size: 10 } }, grid: { display: false } } } }
+            });
+
+            // Party table
+            const ptb = document.querySelector('#item-party-table tbody');
+            ptb.innerHTML = it.parties.map(p => {
+                const share = it.revenue ? ((p.revenue / it.revenue) * 100).toFixed(1) : '0';
+                return `<tr data-name="${p.name}" data-revenue="${p.revenue}" data-qty="${p.qty}" data-txns="${p.txns}" data-share="${share}">
+<td title="${p.name}">${p.name}</td><td>${fmt(p.revenue)}</td><td>${fmtN(p.qty)}</td><td>${p.txns}</td><td>${share}%</td></tr>`;
+            }).join('');
+        }
+
+        itemGrpSel.addEventListener('change', () => populateItemDropdown(itemGrpSel.value, itemSearch.value, verdictFilter.value));
+        itemSel.addEventListener('change', () => renderItem(itemSel.value));
+        itemSearch.addEventListener('input', () => { itemGrpSel.value = ''; populateItemDropdown('', itemSearch.value, verdictFilter.value) });
+        verdictFilter.addEventListener('change', () => populateItemDropdown(itemGrpSel.value, itemSearch.value, verdictFilter.value));
+        populateItemDropdown(grpNames[0], '', '');
+
+        // ========= COMPARISON TAB =========
+        const cmpGrp = document.getElementById('cmp-grp-sel');
+        const cmpItem = document.getElementById('cmp-item-sel');
+        grpNames.forEach(g => { const o = document.createElement('option'); o.value = g; o.textContent = '[G] ' + g; cmpGrp.appendChild(o) });
+        allItemNames.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; cmpItem.appendChild(o) });
+
+        let cmpSelections = [];
+        function addComparison(name, type) {
+            if (cmpSelections.find(s => s.name === name && s.type === type)) return;
+            if (cmpSelections.length >= 6) return;
+            cmpSelections.push({ name, type });
+            renderComparison();
+        }
+        function removeComparison(idx) { cmpSelections.splice(idx, 1); renderComparison() }
+
+        cmpGrp.addEventListener('change', () => { if (cmpGrp.value) { addComparison(cmpGrp.value, 'group'); cmpGrp.value = '' } });
+        cmpItem.addEventListener('change', () => { if (cmpItem.value) { addComparison(cmpItem.value, 'item'); cmpItem.value = '' } });
+
+        function renderComparison() {
+            const tags = document.getElementById('cmp-tags');
+            tags.innerHTML = cmpSelections.map((s, i) => `<div class="comp-tag">${s.type === 'group' ? '[G] ' : ''}${s.name}<span class="remove" onclick="removeComparison(${i})">×</span></div>`).join('');
+
+            destroyChart('cmpC');
+            if (!cmpSelections.length) {
+                document.getElementById('cmp-kpis').innerHTML = '<div style="color:var(--text2);padding:20px">Select groups or items above to compare</div>';
+                document.querySelector('#cmp-table tbody').innerHTML = '';
+                return;
+            }
+            const datasets = cmpSelections.map((s, i) => {
+                const d = s.type === 'group' ? D.groups[s.name] : D.items[s.name];
+                return { label: (s.type === 'group' ? '[G] ' : '') + s.name, data: d.monthly_rev, borderColor: colors[i % colors.length], backgroundColor: 'transparent', pointRadius: 2, tension: .3 };
+            });
+            charts.cmpC = new Chart(document.getElementById('cmp-chart'), {
+                type: 'line', data: { labels: M, datasets },
+                options: { responsive: true, plugins: { legend: { labels: { color: '#9498b3', font: { size: 11 } } } }, scales: { x: { ticks: { color: '#9498b3', font: { size: 10 }, maxRotation: 45 }, grid: { color: '#2d3148' } }, y: { ticks: { color: '#9498b3', callback: v => fmt(v) }, grid: { color: '#2d3148' } } } }
+            });
+
+            // Summary KPIs
+            const totalRev = cmpSelections.reduce((s, c) => { const d = c.type === 'group' ? D.groups[c.name] : D.items[c.name]; return s + d.revenue }, 0);
+            document.getElementById('cmp-kpis').innerHTML = `<div class="kpi"><div class="label">Combined Revenue</div><div class="value">${fmt(totalRev)}</div></div>
+<div class="kpi"><div class="label">Selections</div><div class="value">${cmpSelections.length}</div></div>`;
+
+            // Table
+            const ctb = document.querySelector('#cmp-table tbody');
+            ctb.innerHTML = cmpSelections.map(s => {
+                const d = s.type === 'group' ? D.groups[s.name] : D.items[s.name];
+                const v = s.type === 'group' ? d.verdict : d.verdict;
+                return `<tr><td>${s.name}</td><td>${s.type}</td><td>${fmt(d.revenue)}</td><td>${d.margin_pct}%</td><td>${d.txns}</td><td>${d.buyers}</td><td>${badge(v)}</td></tr>`;
+            }).join('');
+        }
+        window.removeComparison = removeComparison;
+        renderComparison();
+    </script>
+</body>
+
+</html>

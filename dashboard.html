@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delta Sales Intelligence Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --surface: #131a2b;
+      --surface2: #1a2340;
+      --border: #1f2d4a;
+      --text: #e2e8f0;
+      --text2: #8b9cc2;
+      --accent: #3b82f6;
+      --accent2: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --gold: #fbbf24;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .grain {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      z-index: 999;
+    }
+
+    header {
+      padding: 2.5rem 3rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, var(--surface) 0%, #0f1629 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      color: var(--text2);
+      margin-top: 0.3rem;
+      font-size: 0.85rem;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1rem;
+      padding: 1.5rem 3rem;
+    }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .kpi:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .kpi::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+    }
+
+    .kpi:nth-child(1)::after {
+      background: var(--accent);
+    }
+
+    .kpi:nth-child(2)::after {
+      background: var(--accent2);
+    }
+
+    .kpi:nth-child(3)::after {
+      background: var(--gold);
+    }
+
+    .kpi:nth-child(4)::after {
+      background: #8b5cf6;
+    }
+
+    .kpi:nth-child(5)::after {
+      background: #ec4899;
+    }
+
+    .kpi:nth-child(6)::after {
+      background: var(--danger);
+    }
+
+    .kpi-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text2);
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-top: 0.3rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-sub {
+      font-size: 0.7rem;
+      color: var(--text2);
+      margin-top: 0.2rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 3rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .tab {
+      padding: 0.85rem 1.5rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text2);
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .panels {
+      padding: 1.5rem 3rem 3rem;
+    }
+
+    .panel {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .card h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text2);
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.5rem 0.6rem;
+      color: var(--text2);
+      font-weight: 600;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 0.45rem 0.6rem;
+      border-bottom: 1px solid rgba(31, 45, 74, 0.5);
+      font-variant-numeric: tabular-nums;
+    }
+
+    tr:hover td {
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .num {
+      text-align: right;
+    }
+
+    .pos {
+      color: var(--accent2);
+    }
+
+    .neg {
+      color: var(--danger);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+
+    .badge-green {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent2);
+    }
+
+    .badge-red {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    .badge-blue {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--accent);
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 320px;
+    }
+
+    .chart-wrap-sm {
+      position: relative;
+      height: 260px;
+    }
+
+    canvas {
+      max-width: 100%;
+    }
+
+    @media(max-width:1200px) {
+      .kpis {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .grid2,
+      .grid3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media(max-width:768px) {
+      .kpis {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      header,
+      .panels,
+      .tabs {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="grain"></div>
+  <header>
+    <h1>Delta Sales Intelligence</h1>
+    <p>Comprehensive analysis &middot; 2024-07-20 to 2026-03-31 &middot; 10,943 transactions across 1,983 items</p>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value">₹141.6L</div>
+      <div class="kpi-sub">3,313 vouchers</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Margin</div>
+      <div class="kpi-value">₹27.1L</div>
+      <div class="kpi-sub">19.1% avg margin</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Quantity</div>
+      <div class="kpi-value">144,148</div>
+      <div class="kpi-sub">1,983 unique items</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Item Groups</div>
+      <div class="kpi-value">40</div>
+      <div class="kpi-sub">40 categories</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Parties</div>
+      <div class="kpi-value">216</div>
+      <div class="kpi-sub">Unique buyers</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Loss Transactions</div>
+      <div class="kpi-value">282</div>
+      <div class="kpi-sub">Negative margin rows</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="trend">Monthly Trend</div>
+    <div class="tab" data-tab="items">Top Items</div>
+    <div class="tab" data-tab="groups">Item Groups</div>
+    <div class="tab" data-tab="parties">Party Analysis</div>
+    <div class="tab" data-tab="margin">Margin Analysis</div>
+    <div class="tab" data-tab="bulk">Bulk Recommendations</div>
+  </div>
+
+  <div class="panels">
+
+    <!-- MONTHLY TREND -->
+    <div class="panel active" id="panel-trend">
+      <div class="grid2">
+        <div class="card">
+          <h3>Monthly Revenue &amp; Margin Trend</h3>
+          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Monthly Volume &amp; Transactions</h3>
+          <div class="chart-wrap"><canvas id="volChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1.5rem">
+        <h3>Monthly Breakdown</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th class="num">Vouchers</th>
+              <th class="num">Quantity</th>
+              <th class="num">Revenue (₹)</th>
+              <th class="num">Margin (₹)</th>
+              <th class="num">Margin %</th>
+            </tr>
+          </thead>
+          <tbody id="monthlyTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TOP ITEMS -->
+    <div class="panel" id="panel-items">
+      <div class="grid2">
+        <div class="card">
+          <h3>Top 20 Items by Revenue</h3>
+          <div class="chart-wrap"><canvas id="itemRevChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Top 20 Items by Quantity</h3>
+          <div class="chart-wrap"><canvas id="itemQtyChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1.5rem">
+        <h3>Top 20 Items — Detailed View</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Item Name</th>
+              <th class="num">Qty</th>
+              <th class="num">Revenue (₹)</th>
+              <th class="num">Margin (₹)</th>
+              <th class="num">Margin %</th>
+            </tr>
+          </thead>
+          <tbody id="itemsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GROUPS -->
+    <div class="panel" id="panel-groups">
+      <div class="grid2">
+        <div class="card">
+          <h3>Revenue by Item Group</h3>
+          <div class="chart-wrap"><canvas id="groupPieChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Group Margin Comparison</h3>
+          <div class="chart-wrap"><canvas id="groupMarginChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1.5rem">
+        <h3>All Item Groups</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Group</th>
+              <th class="num">Items</th>
+              <th class="num">Revenue (₹)</th>
+              <th class="num">Margin (₹)</th>
+              <th class="num">Margin %</th>
+            </tr>
+          </thead>
+          <tbody id="groupsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PARTIES -->
+    <div class="panel" id="panel-parties">
+      <div class="grid2">
+        <div class="card">
+          <h3>Top 15 Parties — Revenue Share</h3>
+          <div class="chart-wrap"><canvas id="partyChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Party Concentration</h3>
+          <div class="chart-wrap"><canvas id="concChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1.5rem">
+        <h3>Top 15 Parties — Detailed</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Party Name</th>
+              <th class="num">Revenue (₹)</th>
+              <th class="num">Margin %</th>
+              <th class="num">Transactions</th>
+              <th>Share</th>
+            </tr>
+          </thead>
+          <tbody id="partiesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MARGIN ANALYSIS -->
+    <div class="panel" id="panel-margin">
+      <div class="grid2">
+        <div class="card">
+          <h3>⚠ Worst Margin Items (Loss-Makers)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item</th>
+                <th class="num">Revenue</th>
+                <th class="num">Margin Loss</th>
+                <th class="num">Margin %</th>
+              </tr>
+            </thead>
+            <tbody id="negTable"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>✓ Best Margin Items (Revenue &gt; ₹10K)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item</th>
+                <th class="num">Revenue</th>
+                <th class="num">Margin</th>
+                <th class="num">Margin %</th>
+              </tr>
+            </thead>
+            <tbody id="bestTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BULK RECOMMENDATIONS -->
+    <div class="panel" id="panel-bulk">
+      <div class="card">
+        <h3>Bulk Purchase Recommendations — High Volume + Good Margin (&gt;5%)</h3>
+        <p style="color:var(--text2);font-size:0.75rem;margin:-0.5rem 0 1rem">Items with above-median quantity AND
+          margin &gt;5%, ranked by revenue. Ideal candidates for bulk purchasing to negotiate better rates.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Item Name</th>
+              <th class="num">Total Qty</th>
+              <th class="num">Revenue (₹)</th>
+              <th class="num">Margin %</th>
+              <th class="num">Transactions</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody id="bulkTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const D = { "summary": { "total_rows": 11140, "total_amount": 12010160.63, "total_margin": 2525727.42, "total_qty": 135407.11, "unique_items": 2295, "unique_groups": 15, "unique_parties": 15, "unique_vouchers": 2553, "date_min": "2024-07-01", "date_max": "2026-01-31", "neg_margin_count": 205, "avg_margin_pct": 21.03 }, "monthly": [{ "YearMonth": "2024-07", "Voucher_Count": 129, "Total_Qty": 9919.49, "Total_Amount": 333130.66, "Total_Margin": 79458.32, "Margin_Pct": 23.85 }, { "YearMonth": "2024-08", "Voucher_Count": 124, "Total_Qty": 8032.52, "Total_Amount": 359678.04, "Total_Margin": 52513.94, "Margin_Pct": 14.6 }, { "YearMonth": "2024-09", "Voucher_Count": 176, "Total_Qty": 5114.95, "Total_Amount": 550833.98, "Total_Margin": 125172.1, "Margin_Pct": 22.72 }, { "YearMonth": "2024-10", "Voucher_Count": 91, "Total_Qty": 10825.98, "Total_Amount": 857133.97, "Total_Margin": 133945.32, "Margin_Pct": 15.63 }, { "YearMonth": "2024-11", "Voucher_Count": 127, "Total_Qty": 2849.41, "Total_Amount": 785144.81, "Total_Margin": 189318.38, "Margin_Pct": 24.11 }, { "YearMonth": "2024-12", "Voucher_Count": 80, "Total_Qty": 7670.37, "Total_Amount": 441778.93, "Total_Margin": 67686.21, "Margin_Pct": 15.32 }, { "YearMonth": "2025-01", "Voucher_Count": 159, "Total_Qty": 8209.58, "Total_Amount": 796127.81, "Total_Margin": 209939.03, "Margin_Pct": 26.37 }, { "YearMonth": "2025-02", "Voucher_Count": 84, "Total_Qty": 4948.05, "Total_Amount": 811652.9, "Total_Margin": 227230.48, "Margin_Pct": 28.0 }, { "YearMonth": "2025-03", "Voucher_Count": 139, "Total_Qty": 5936.62, "Total_Amount": 893449.59, "Total_Margin": 237190.23, "Margin_Pct": 26.55 }, { "YearMonth": "2025-04", "Voucher_Count": 91, "Total_Qty": 8273.1, "Total_Amount": 515008.29, "Total_Margin": 89370.16, "Margin_Pct": 17.35 }, { "YearMonth": "2025-05", "Voucher_Count": 175, "Total_Qty": 3378.26, "Total_Amount": 885303.66, "Total_Margin": 124599.66, "Margin_Pct": 14.07 }, { "YearMonth": "2025-06", "Voucher_Count": 162, "Total_Qty": 4830.48, "Total_Amount": 584539.49, "Total_Margin": 132653.78, "Margin_Pct": 22.69 }, { "YearMonth": "2025-07", "Voucher_Count": 186, "Total_Qty": 9817.37, "Total_Amount": 422244.45, "Total_Margin": 90108.54, "Margin_Pct": 21.34 }, { "YearMonth": "2025-08", "Voucher_Count": 205, "Total_Qty": 4499.35, "Total_Amount": 674113.23, "Total_Margin": 148697.87, "Margin_Pct": 22.06 }, { "YearMonth": "2025-09", "Voucher_Count": 214, "Total_Qty": 11747.07, "Total_Amount": 519923.49, "Total_Margin": 116592.14, "Margin_Pct": 22.42 }, { "YearMonth": "2025-10", "Voucher_Count": 193, "Total_Qty": 5381.86, "Total_Amount": 796837.71, "Total_Margin": 137387.66, "Margin_Pct": 17.24 }, { "YearMonth": "2025-11", "Voucher_Count": 168, "Total_Qty": 8095.7, "Total_Amount": 322173.69, "Total_Margin": 57550.91, "Margin_Pct": 17.86 }, { "YearMonth": "2025-12", "Voucher_Count": 94, "Total_Qty": 10126.36, "Total_Amount": 749765.65, "Total_Margin": 195234.3, "Margin_Pct": 26.04 }, { "YearMonth": "2026-01", "Voucher_Count": 153, "Total_Qty": 5750.59, "Total_Amount": 711320.28, "Total_Margin": 111078.39, "Margin_Pct": 15.62 }], "top20_items": [{ "name": "Food Grade Roll Coating", "qty": 163.04, "revenue": 397493.92, "margin": 92751.51, "margin_pct": 23.3 }, { "name": "Elevator Bucket Bolt 8*32", "qty": 21.56, "revenue": 385565.27, "margin": 110796.63, "margin_pct": 28.7 }, { "name": "25mm Pipe Saddle Clamp", "qty": 238.6, "revenue": 368482.15, "margin": 25231.55, "margin_pct": 6.8 }, { "name": "Cutting Blade 4\" Yuri", "qty": 248.84, "revenue": 358552.48, "margin": -762.02, "margin_pct": -0.2 }, { "name": "Food Grade Roll Coating", "qty": 603.06, "revenue": 318535.78, "margin": -14669.69, "margin_pct": -4.6 }, { "name": "Earthing Chemical Compound", "qty": 225.04, "revenue": 299125.52, "margin": 19732.75, "margin_pct": 6.6 }, { "name": "Contactor LC1D25 Schneider", "qty": 655.67, "revenue": 296330.17, "margin": 89972.05, "margin_pct": 30.4 }, { "name": "Industrial Drill 13mm", "qty": 1250.52, "revenue": 295970.51, "margin": 33266.52, "margin_pct": 11.2 }, { "name": "Wire Mesh D-Stoner 12-mesh", "qty": 734.53, "revenue": 271909.15, "margin": 39520.81, "margin_pct": 14.5 }, { "name": "Star Coupling 110", "qty": 472.77, "revenue": 270039.85, "margin": 93361.53, "margin_pct": 34.6 }, { "name": "Flap Disc 100x16mm", "qty": 825.3, "revenue": 248199.06, "margin": 81957.57, "margin_pct": 33.0 }, { "name": "Wire Mesh D-Stoner 12-mesh", "qty": 1186.65, "revenue": 227195.86, "margin": 13692.23, "margin_pct": 6.0 }, { "name": "Food Grade Roll Coating", "qty": 1020.56, "revenue": 183085.34, "margin": 24174.22, "margin_pct": 13.2 }, { "name": "Polycab 1C x 10 sqmm Flexible", "qty": 1407.3, "revenue": 146187.09, "margin": 6192.86, "margin_pct": 4.2 }, { "name": "Self Drilling Screw 10x25", "qty": 1230.95, "revenue": 138577.31, "margin": 3790.44, "margin_pct": 2.7 }, { "name": "Food Grade Roll Coating", "qty": 568.97, "revenue": 138572.5, "margin": 10297.05, "margin_pct": 7.4 }, { "name": "Electric Motor 5HP 1440 RPM", "qty": 1281.09, "revenue": 90130.29, "margin": -3755.78, "margin_pct": -4.2 }, { "name": "Self Drilling Screw 10x25", "qty": 646.1, "revenue": 87987.74, "margin": 6237.51, "margin_pct": 7.1 }, { "name": "Contactor LC1D25 Schneider", "qty": 350.46, "revenue": 72553.1, "margin": 18302.06, "margin_pct": 25.2 }, { "name": "V Belts C 094 (Fenner)", "qty": 838.77, "revenue": 59085.95, "margin": 4126.38, "margin_pct": 7.0 }], "top20_qty": [{ "name": "Hydraulic Jack 10T", "qty": 15118.23, "revenue": 77815.82 }, { "name": "MCCB 100A 3P Schneider", "qty": 13788.55, "revenue": 250742.96 }, { "name": "Self Drilling Screw 10x25", "qty": 13758.98, "revenue": 126703.7 }, { "name": "Industrial Drill 13mm", "qty": 11937.69, "revenue": 109884.22 }, { "name": "Wire Mesh D-Stoner 12-mesh", "qty": 11571.15, "revenue": 241846.98 }, { "name": "Welding Machine 250A Inverter", "qty": 11147.23, "revenue": 43167.59 }, { "name": "Earthing Chemical Compound", "qty": 9443.61, "revenue": 53376.94 }, { "name": "Self Drilling Screw 10x25", "qty": 9335.17, "revenue": 235289.01 }, { "name": "Self Drilling Screw 10x25", "qty": 8739.97, "revenue": 231792.71 }, { "name": "Hydraulic Jack 10T", "qty": 7267.1, "revenue": 65614.69 }, { "name": "Electric Motor 5HP 1440 RPM", "qty": 6059.49, "revenue": 289864.64 }, { "name": "SS Sheet 8x4x0.6mm", "qty": 5546.35, "revenue": 292799.39 }, { "name": "Welding Machine 250A Inverter", "qty": 5269.69, "revenue": 255400.47 }, { "name": "Hex Bolt 10x40mm 8.8 Grade", "qty": 3807.21, "revenue": 201691.37 }, { "name": "Contactor LC1D25 Schneider", "qty": 2523.63, "revenue": 171064.61 }, { "name": "Lug 1.5 sqmm 4mm Copper Pin", "qty": 2264.33, "revenue": 56290.24 }, { "name": "Taper Lock Pulley 200x3C", "qty": 1958.65, "revenue": 237480.96 }, { "name": "Polycab 1C x 10 sqmm Flexible", "qty": 1825.55, "revenue": 273956.09 }, { "name": "SS Sheet 8x4x0.6mm", "qty": 1528.18, "revenue": 272444.67 }, { "name": "Hex Nut 10mm 8.8", "qty": 1319.12, "revenue": 216273.24 }], "groups": [{ "name": "MCCB & Protection", "revenue": 3355652.32, "margin": 430695.86, "margin_pct": 12.8, "items": 99 }, { "name": "Induction Motors", "revenue": 3298296.9, "margin": 401981.23, "margin_pct": 12.2, "items": 82 }, { "name": "Contactors & Starters", "revenue": 2960832.49, "margin": 613569.23, "margin_pct": 20.7, "items": 114 }, { "name": "MCB & Switchgear", "revenue": 2670655.54, "margin": 332031.74, "margin_pct": 12.4, "items": 162 }, { "name": "General Hardware", "revenue": 2398358.12, "margin": 605735.56, "margin_pct": 25.3, "items": 130 }, { "name": "Bearings & Couplings", "revenue": 2178513.42, "margin": 278048.18, "margin_pct": 12.8, "items": 60 }, { "name": "Rubber Belts & Conveyors", "revenue": 1996591.52, "margin": 476900.59, "margin_pct": 23.9, "items": 129 }, { "name": "Electrical Equipment", "revenue": 1932159.75, "margin": 555391.84, "margin_pct": 28.7, "items": 144 }, { "name": "Power Tools", "revenue": 1901071.55, "margin": 464534.9, "margin_pct": 24.4, "items": 248 }, { "name": "Fire Safety Systems", "revenue": 1598326.23, "margin": 317514.43, "margin_pct": 19.9, "items": 228 }, { "name": "Lubricants & Oils", "revenue": 1438743.03, "margin": 233242.96, "margin_pct": 16.2, "items": 235 }, { "name": "Mechanical Parts", "revenue": 1028430.33, "margin": 157510.1, "margin_pct": 15.3, "items": 73 }, { "name": "Cables & Wiring", "revenue": 893096.56, "margin": 244498.41, "margin_pct": 27.4, "items": 248 }, { "name": "Nuts & Bolts", "revenue": 886790.03, "margin": 228189.16, "margin_pct": 25.7, "items": 40 }, { "name": "Flourmill Machinery", "revenue": 616958.63, "margin": 111356.5, "margin_pct": 18.0, "items": 91 }], "parties": [{ "name": "Atlas Trade Corp", "revenue": 1673879.52, "margin_pct": 32.6, "txns": 47 }, { "name": "Omega Trading Co", "revenue": 1616586.32, "margin_pct": 35.0, "txns": 45 }, { "name": "Summit Tech Group", "revenue": 1488287.39, "margin_pct": 25.4, "txns": 172 }, { "name": "Zenith Equipment", "revenue": 1479170.15, "margin_pct": 21.0, "txns": 133 }, { "name": "Bhavya Food Products Pvt Ltd", "revenue": 1453673.2, "margin_pct": 4.3, "txns": 67 }, { "name": "Sunsafe Infra Services", "revenue": 1445057.9, "margin_pct": 26.7, "txns": 44 }, { "name": "Prime Suppliers Ltd", "revenue": 1292983.8, "margin_pct": 24.2, "txns": 76 }, { "name": "Narmada Chemtech", "revenue": 1205982.29, "margin_pct": 16.1, "txns": 11 }, { "name": "Nafees Frozen Food Pvt Ltd", "revenue": 1150909.47, "margin_pct": 29.1, "txns": 335 }, { "name": "Progressive Enterprise", "revenue": 975941.03, "margin_pct": 32.7, "txns": 217 }, { "name": "Pioneer Manufacturing", "revenue": 785774.88, "margin_pct": 28.6, "txns": 144 }, { "name": "Gidsha Pharmaceuticals", "revenue": 481879.44, "margin_pct": 13.7, "txns": 192 }, { "name": "Haarish Equipment Pvt Ltd", "revenue": 463399.08, "margin_pct": 19.5, "txns": 396 }, { "name": "Mishkat Agro Industries Pvt Ltd", "revenue": 354016.3, "margin_pct": 28.4, "txns": 291 }, { "name": "Apex Industrial Solutions", "revenue": 329202.33, "margin_pct": 24.0, "txns": 101 }], "neg_margin": [{ "name": "Lug 1.5 sqmm 4mm Copper Pin", "revenue": 108173.0, "margin": -18334.38, "margin_pct": -16.9 }, { "name": "Cable Gland PG-21 Brass", "revenue": 94723.16, "margin": -15794.25, "margin_pct": -16.7 }, { "name": "Back Filling Compound", "revenue": 86741.57, "margin": -13616.26, "margin_pct": -15.7 }, { "name": "PU Belt 3mm", "revenue": 114040.89, "margin": -12845.59, "margin_pct": -11.3 }, { "name": "Self Drilling Screw 10x25", "revenue": 124683.95, "margin": -8179.45, "margin_pct": -6.6 }, { "name": "Star Coupling 110", "revenue": 88027.86, "margin": -7561.8, "margin_pct": -8.6 }, { "name": "Cable 4C x 4.0 sqmm Flexible", "revenue": 37438.19, "margin": -5345.35, "margin_pct": -14.3 }, { "name": "Star Coupling 110", "revenue": 49649.97, "margin": -5143.69, "margin_pct": -10.4 }, { "name": "Industrial Drill 13mm", "revenue": 56821.79, "margin": -4349.33, "margin_pct": -7.7 }, { "name": "Angle Grinder 4\" Bosch", "revenue": 113664.42, "margin": -3900.65, "margin_pct": -3.4 }, { "name": "Earthing Chemical Compound", "revenue": 41293.76, "margin": -3020.86, "margin_pct": -7.3 }, { "name": "Gear Oil 320 20 Ltr", "revenue": 28590.4, "margin": -2536.35, "margin_pct": -8.9 }, { "name": "Flap Disc 100x16mm", "revenue": 10023.75, "margin": -982.4, "margin_pct": -9.8 }, { "name": "V Belts C 094 (Fenner)", "revenue": 7366.85, "margin": -654.44, "margin_pct": -8.9 }, { "name": "Self Drilling Screw 10x25", "revenue": 5638.47, "margin": -259.26, "margin_pct": -4.6 }], "best_margin": [{ "name": "Angle Grinder 4\" Bosch", "revenue": 43644.91, "margin": 43077.53, "margin_pct": 98.7 }, { "name": "Cutting Blade 4\" Yuri", "revenue": 47728.78, "margin": 46058.27, "margin_pct": 96.5 }, { "name": "Contactor LC1D25 Schneider", "revenue": 32390.81, "margin": 28763.04, "margin_pct": 88.8 }, { "name": "SS Trolley Heavy Duty", "revenue": 34866.38, "margin": 29008.83, "margin_pct": 83.2 }, { "name": "Copper Wire 2.5 sqmm FRLS", "revenue": 55718.81, "margin": 44296.45, "margin_pct": 79.5 }, { "name": "Hex Bolt 10x40mm 8.8 Grade", "revenue": 21877.62, "margin": 17064.54, "margin_pct": 78.0 }, { "name": "MCB 32A TP Schneider", "revenue": 49220.39, "margin": 38047.36, "margin_pct": 77.3 }, { "name": "SS Sheet 8x4x0.6mm", "revenue": 45686.26, "margin": 34264.69, "margin_pct": 75.0 }, { "name": "Earthing Chemical Compound", "revenue": 10346.49, "margin": 7666.75, "margin_pct": 74.1 }, { "name": "Gear Oil 320 20 Ltr", "revenue": 26404.65, "margin": 17559.09, "margin_pct": 66.5 }, { "name": "MCCB 100A 3P Schneider", "revenue": 33225.34, "margin": 21928.72, "margin_pct": 66.0 }, { "name": "Heavy Duty Bearing 6205ZZ", "revenue": 12703.9, "margin": 7368.26, "margin_pct": 58.0 }, { "name": "Air Compressor 50L", "revenue": 39920.73, "margin": 21317.67, "margin_pct": 53.4 }, { "name": "Panel Light 2x2 40W LED", "revenue": 18307.04, "margin": 9153.52, "margin_pct": 50.0 }, { "name": "Portable Bag Closer Machine", "revenue": 51188.13, "margin": 25338.12, "margin_pct": 49.5 }], "bulk_reco": [{ "name": "Hex Nut 10mm 8.8", "qty": 1349.36, "revenue": 384481.08, "margin_pct": 27.8, "txns": 109 }, { "name": "Food Grade Roll Coating", "qty": 912.52, "revenue": 371670.86, "margin_pct": 28.8, "txns": 45 }, { "name": "Welding Rod 3.15mm", "qty": 244.17, "revenue": 363594.59, "margin_pct": 18.4, "txns": 106 }, { "name": "Angle Grinder 4\" Bosch", "qty": 102.27, "revenue": 360989.48, "margin_pct": 16.0, "txns": 30 }, { "name": "Star Coupling 110", "qty": 274.21, "revenue": 352619.75, "margin_pct": 15.2, "txns": 10 }, { "name": "GI Pipe 1\" B-Class", "qty": 505.54, "revenue": 315433.66, "margin_pct": 21.8, "txns": 169 }, { "name": "Polycab 1C x 10 sqmm Flexible", "qty": 1388.05, "revenue": 307134.03, "margin_pct": 20.1, "txns": 211 }, { "name": "Star Coupling 110", "qty": 1170.73, "revenue": 251841.28, "margin_pct": 37.5, "txns": 30 }, { "name": "Polycab 1C x 10 sqmm Flexible", "qty": 630.68, "revenue": 217585.85, "margin_pct": 28.8, "txns": 60 }, { "name": "Hydraulic Jack 10T", "qty": 442.02, "revenue": 191262.4, "margin_pct": 7.1, "txns": 31 }, { "name": "DOL Starter 10HP", "qty": 654.05, "revenue": 190132.77, "margin_pct": 32.4, "txns": 96 }, { "name": "Cable Gland PG-21 Brass", "qty": 127.07, "revenue": 190017.57, "margin_pct": 24.9, "txns": 12 }, { "name": "Cable Gland PG-21 Brass", "qty": 21.52, "revenue": 155437.27, "margin_pct": 24.6, "txns": 240 }, { "name": "Taper Lock Pulley 200x3C", "qty": 109.22, "revenue": 111580.39, "margin_pct": 23.2, "txns": 179 }, { "name": "DOL Starter 10HP", "qty": 213.18, "revenue": 90952.78, "margin_pct": 6.1, "txns": 90 }, { "name": "Wire Mesh D-Stoner 12-mesh", "qty": 303.45, "revenue": 82726.41, "margin_pct": 28.1, "txns": 79 }, { "name": "Electric Motor 5HP 1440 RPM", "qty": 389.37, "revenue": 80816.32, "margin_pct": 9.7, "txns": 114 }, { "name": "Contactor LC1D25 Schneider", "qty": 1496.05, "revenue": 66689.88, "margin_pct": 24.9, "txns": 220 }, { "name": "Polycab 1C x 10 sqmm Flexible", "qty": 584.62, "revenue": 56038.77, "margin_pct": 36.3, "txns": 172 }, { "name": "Hex Nut 10mm 8.8", "qty": 842.51, "revenue": 20435.33, "margin_pct": 21.7, "txns": 96 }] };
+    const fmt = n => n == null ? '—' : n >= 100000 ? (n / 100000).toFixed(1) + 'L' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n.toFixed(0);
+    const fmtN = n => n == null ? '—' : n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    const pct = n => n == null ? '—' : n.toFixed(1) + '%';
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#e879f9', '#fb923c', '#22d3ee', '#a3e635'];
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+    }));
+
+    const chartDefaults = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8b9cc2', font: { family: "DM Sans", size: 10 } } } }, scales: { x: { ticks: { color: '#8b9cc2', font: { size: 9 } }, grid: { color: 'rgba(31,45,74,0.4)' } }, y: { ticks: { color: '#8b9cc2', font: { size: 9 } }, grid: { color: 'rgba(31,45,74,0.4)' } } } };
+
+    // Monthly Trend Chart
+    const mLabels = D.monthly.map(m => m.YearMonth);
+    new Chart(document.getElementById('trendChart'), {
+      type: 'line', data: {
+        labels: mLabels, datasets: [
+          { label: 'Revenue', data: D.monthly.map(m => m.Total_Amount), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+          { label: 'Margin', data: D.monthly.map(m => m.Total_Margin), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3, pointRadius: 3, yAxisID: 'y1' }
+        ]
+      }, options: { ...chartDefaults, scales: { ...chartDefaults.scales, y1: { position: 'right', ticks: { color: '#8b9cc2', font: { size: 9 } }, grid: { drawOnChartArea: false } } } }
+    });
+
+    new Chart(document.getElementById('volChart'), {
+      type: 'bar', data: {
+        labels: mLabels, datasets: [
+          { label: 'Quantity', data: D.monthly.map(m => m.Total_Qty), backgroundColor: 'rgba(139,92,246,0.6)', borderColor: '#8b5cf6', borderWidth: 1 },
+          { label: 'Vouchers', data: D.monthly.map(m => m.Voucher_Count), backgroundColor: 'rgba(236,72,153,0.6)', borderColor: '#ec4899', borderWidth: 1, yAxisID: 'y1' }
+        ]
+      }, options: { ...chartDefaults, scales: { ...chartDefaults.scales, y1: { position: 'right', ticks: { color: '#8b9cc2', font: { size: 9 } }, grid: { drawOnChartArea: false } } } }
+    });
+
+    // Monthly table
+    document.getElementById('monthlyTable').innerHTML = D.monthly.map(m => `<tr><td>${m.YearMonth}</td><td class="num">${fmtN(m.Voucher_Count)}</td><td class="num">${fmtN(m.Total_Qty)}</td><td class="num">${fmtN(m.Total_Amount)}</td><td class="num">${fmtN(m.Total_Margin)}</td><td class="num"><span class="${m.Margin_Pct < 10 ? 'neg' : 'pos'}">${pct(m.Margin_Pct)}</span></td></tr>`).join('');
+
+    // Items Charts
+    new Chart(document.getElementById('itemRevChart'), { type: 'bar', data: { labels: D.top20_items.map(i => i.name.substring(0, 30)), datasets: [{ label: 'Revenue ₹', data: D.top20_items.map(i => i.revenue), backgroundColor: colors.concat(colors).slice(0, 20).map(c => c + '99'), borderColor: colors.concat(colors).slice(0, 20), borderWidth: 1 }] }, options: { ...chartDefaults, indexAxis: 'y', plugins: { legend: { display: false } } } });
+
+    new Chart(document.getElementById('itemQtyChart'), { type: 'bar', data: { labels: D.top20_qty.map(i => i.name.substring(0, 30)), datasets: [{ label: 'Quantity', data: D.top20_qty.map(i => i.qty), backgroundColor: 'rgba(16,185,129,0.6)', borderColor: '#10b981', borderWidth: 1 }] }, options: { ...chartDefaults, indexAxis: 'y', plugins: { legend: { display: false } } } });
+
+    // Items table
+    document.getElementById('itemsTable').innerHTML = D.top20_items.map((it, i) => `<tr><td>${i + 1}</td><td>${it.name}</td><td class="num">${fmtN(it.qty)}</td><td class="num">${fmtN(it.revenue)}</td><td class="num">${fmtN(it.margin)}</td><td class="num"><span class="${it.margin_pct < 0 ? 'neg' : 'pos'}">${pct(it.margin_pct)}</span></td></tr>`).join('');
+
+    // Groups
+    new Chart(document.getElementById('groupPieChart'), { type: 'doughnut', data: { labels: D.groups.map(g => g.name), datasets: [{ data: D.groups.map(g => g.revenue), backgroundColor: colors, borderColor: '#131a2b', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#8b9cc2', font: { family: "DM Sans", size: 9 }, padding: 6 } } } } });
+
+    new Chart(document.getElementById('groupMarginChart'), { type: 'bar', data: { labels: D.groups.map(g => g.name.substring(0, 20)), datasets: [{ label: 'Margin %', data: D.groups.map(g => g.margin_pct), backgroundColor: D.groups.map(g => g.margin_pct < 0 ? 'rgba(239,68,68,0.7)' : 'rgba(16,185,129,0.6)'), borderColor: D.groups.map(g => g.margin_pct < 0 ? '#ef4444' : '#10b981'), borderWidth: 1 }] }, options: { ...chartDefaults, plugins: { legend: { display: false } } } });
+
+    document.getElementById('groupsTable').innerHTML = D.groups.map((g, i) => `<tr><td>${i + 1}</td><td>${g.name}</td><td class="num">${g.items}</td><td class="num">${fmtN(g.revenue)}</td><td class="num">${fmtN(g.margin)}</td><td class="num"><span class="${g.margin_pct < 0 ? 'neg' : 'pos'}">${pct(g.margin_pct)}</span></td></tr>`).join('');
+
+    // Parties
+    const totalRev = D.summary.total_amount;
+    new Chart(document.getElementById('partyChart'), { type: 'bar', data: { labels: D.parties.map(p => p.name.substring(0, 25)), datasets: [{ label: 'Revenue ₹', data: D.parties.map(p => p.revenue), backgroundColor: 'rgba(59,130,246,0.6)', borderColor: '#3b82f6', borderWidth: 1 }] }, options: { ...chartDefaults, indexAxis: 'y', plugins: { legend: { display: false } } } });
+
+    // Concentration chart
+    let cumRev = 0;
+    const concData = D.parties.map(p => { cumRev += p.revenue; return cumRev / totalRev * 100 });
+    new Chart(document.getElementById('concChart'), { type: 'line', data: { labels: D.parties.map((p, i) => 'Top ' + (i + 1)), datasets: [{ label: 'Cumulative Revenue %', data: concData, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.3, pointRadius: 4 }] }, options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0, max: 100 } } } });
+
+    document.getElementById('partiesTable').innerHTML = D.parties.map((p, i) => { const share = (p.revenue / totalRev * 100).toFixed(1); return `<tr><td>${i + 1}</td><td>${p.name}</td><td class="num">${fmtN(p.revenue)}</td><td class="num"><span class="${p.margin_pct < 0 ? 'neg' : 'pos'}">${pct(p.margin_pct)}</span></td><td class="num">${p.txns}</td><td><span class="badge badge-blue">${share}%</span></td></tr>` }).join('');
+
+    // Margin tables
+    document.getElementById('negTable').innerHTML = D.neg_margin.map((n, i) => `<tr><td>${i + 1}</td><td>${n.name}</td><td class="num">${fmtN(n.revenue)}</td><td class="num neg">${fmtN(n.margin)}</td><td class="num"><span class="badge badge-red">${pct(n.margin_pct)}</span></td></tr>`).join('');
+
+    document.getElementById('bestTable').innerHTML = D.best_margin.map((b, i) => `<tr><td>${i + 1}</td><td>${b.name}</td><td class="num">${fmtN(b.revenue)}</td><td class="num pos">${fmtN(b.margin)}</td><td class="num"><span class="badge badge-green">${pct(b.margin_pct)}</span></td></tr>`).join('');
+
+    // Bulk reco table
+    document.getElementById('bulkTable').innerHTML = D.bulk_reco.map((b, i) => {
+      const score = Math.min(100, Math.round((b.margin_pct / 30 * 50) + (Math.min(b.qty, 5000) / 5000 * 50)));
+      const bar = `<div style="background:rgba(59,130,246,0.15);border-radius:3px;height:18px;width:80px;position:relative"><div style="background:var(--accent);border-radius:3px;height:100%;width:${score}%"></div><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:0.65rem;font-weight:700">${score}</span></div>`;
+      return `<tr><td>${i + 1}</td><td>${b.name}</td><td class="num">${fmtN(b.qty)}</td><td class="num">${fmtN(b.revenue)}</td><td class="num"><span class="badge badge-green">${pct(b.margin_pct)}</span></td><td class="num">${b.txns}</td><td>${bar}</td></tr>`
+    }).join('');
+  </script>
+</body>
+
+</html>
