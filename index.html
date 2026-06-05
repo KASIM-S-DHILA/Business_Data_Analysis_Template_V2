@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Data Analysis - Dashboard Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+            padding-top: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .dashboard-card h2 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .dashboard-card p {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            flex-grow: 1;
+            margin-bottom: 20px;
+        }
+
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-top: auto;
+        }
+
+        .card-link:hover {
+            color: #764ba2;
+            margin-right: -5px;
+        }
+
+        .card-link::after {
+            content: '→';
+            margin-left: 8px;
+            transition: margin 0.3s ease;
+        }
+
+        .dashboard-card:hover .card-link::after {
+            margin-left: 15px;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            header p {
+                font-size: 1rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .dashboard-card {
+                padding: 20px;
+            }
+
+            .card-icon {
+                font-size: 2rem;
+            }
+
+            .dashboard-card h2 {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Business Data Analysis</h1>
+            <p>Choose a dashboard to explore your business insights</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <a href="dashboard.html" class="dashboard-card">
+                <div class="card-icon">💼</div>
+                <h2>Delta Sales Intelligence</h2>
+                <p>Analyze sales performance, trends, and key metrics. Track delta changes and monitor sales intelligence across your business.</p>
+                <div class="card-link">Open Dashboard</div>
+            </a>
+
+            <a href="dashboard_ready.html" class="dashboard-card">
+                <div class="card-icon">📈</div>
+                <h2>Bulk Purchase Analysis</h2>
+                <p>Explore bulk purchase patterns and purchasing behavior. Gain insights into customer segments and procurement trends.</p>
+                <div class="card-link">Open Dashboard</div>
+            </a>
+
+            <a href="explorer_dashboard.html" class="dashboard-card">
+                <div class="card-icon">🔍</div>
+                <h2>Sales Explorer</h2>
+                <p>Discover and explore sales data with interactive visualizations. Navigate through detailed sales metrics and performance indicators.</p>
+                <div class="card-link">Open Dashboard</div>
+            </a>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 Business Data Analysis Template. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
